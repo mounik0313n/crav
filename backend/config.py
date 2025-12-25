@@ -27,6 +27,7 @@ class Config:
     # JWT Configuration
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES = 86400  # 24 hours in seconds
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 
 
 class ProductionConfig(Config):

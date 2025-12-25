@@ -1,16 +1,17 @@
 const RestaurantCard = {
     props: ['restaurant'],
     template: `
-        <div class="card restaurant-card h-100">
-            <img :src="restaurant.image" class="card-img-top" :alt="restaurant.name">
+        <div class="card restaurant-card h-100 shadow-sm border-0">
+            <img :src="restaurant.image" class="card-img-top" :alt="restaurant.name" style="height: 220px; object-fit: cover;">
             <div class="card-body">
-                <h5 class="card-title">{{ restaurant.name }}</h5>
-                <p class="card-text text-muted">{{ restaurant.cuisine }}</p>
+                <h5 class="card-title font-weight-bold">{{ restaurant.name }}</h5>
+                <p class="card-text text-muted mb-3">{{ restaurant.cuisine }}</p>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="text-warning">★</span>
-                        <strong>{{ restaurant.rating }}</strong>
-                        <small class="text-muted">({{ restaurant.reviews }}+)</small>
+                         <span class="badge badge-warning text-dark px-2 py-1">
+                            <i class="fas fa-star mr-1"></i> {{ restaurant.rating }}
+                        </span>
+                        <small class="text-muted ml-2">({{ restaurant.reviews }}+ reviews)</small>
                     </div>
 
                     <button class="btn btn-sm btn-outline-brand" @click="viewMenu">

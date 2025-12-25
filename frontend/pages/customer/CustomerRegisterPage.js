@@ -44,6 +44,13 @@ const CustomerRegisterPage = {
                         <button type="submit" class="btn btn-brand btn-block mt-4">Sign Up</button>
                     </form>
 
+                    <div class="separator mt-4 mb-4">
+                        <span>OR</span>
+                    </div>
+
+                    <!-- Google Sign-In Button (also works for Sign Up) -->
+                    <div id="google-signup-btn" class="d-flex justify-content-center"></div>
+
                     <p class="text-center small mt-4">
                         Already have an account? 
                         <router-link to="/login">Login</router-link>
@@ -58,9 +65,56 @@ const CustomerRegisterPage = {
             email: '',
             password: '',
             error: null,
+            // Replace with actual Google Client ID
+            googleClientId: '31264651730-5ghtrtubc069u2b82lj4g58jlfrtgdt0.apps.googleusercontent.com',
         };
     },
+    mounted() {
+        this.initGoogleSignIn();
+    },
     methods: {
+        initGoogleSignIn() {
+            if (typeof google === 'undefined') {
+                setTimeout(this.initGoogleSignIn, 500);
+                return;
+            }
+
+            google.accounts.id.initialize({
+                client_id: this.googleClientId,
+                callback: this.handleGoogleCallback,
+            });
+
+            google.accounts.id.renderButton(
+                document.getElementById('google-signup-btn'),
+                { theme: 'outline', size: 'large', width: '100%', text: 'signup_with' }
+            );
+        },
+
+        async handleGoogleCallback(response) {
+            this.error = null;
+            try {
+                const res = await fetch('/api/google-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: response.credential }),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.message || 'Google registration failed.');
+                }
+
+                this.$store.commit('SET_TOKEN', data.token);
+                this.$store.commit('SET_USER', data.user);
+                this.$router.push('/');
+
+            } catch (error) {
+                this.error = error.message;
+                console.error('Google Auth Error:', error);
+            }
+        },
+
         async handleRegister() {
             this.error = null;
             if (this.password.length < 6) {
@@ -84,7 +138,7 @@ const CustomerRegisterPage = {
                 if (!response.ok) {
                     throw new Error(data.message || 'Registration failed.');
                 }
-                
+
                 alert('Registration successful! Please log in.');
                 this.$router.push('/login');
 

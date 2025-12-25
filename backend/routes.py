@@ -22,6 +22,8 @@ from datetime import datetime, date,timedelta
 from sqlalchemy.orm import joinedload
 import random
 import string
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 # --- ============================= ---
 # --- CORE AUTHENTICATION API ROUTES ---
@@ -109,6 +111,61 @@ def register_customer():
     )
     db.session.commit()
     return jsonify({"message": "Customer account created successfully"}), 201
+
+
+@app.route('/api/google-login', methods=['POST'])
+def google_login():
+    data = request.get_json()
+    token = data.get('token')
+    if not token:
+        return jsonify({"message": "Google token is missing"}), 400
+
+    try:
+        # Verify the token
+        client_id = app.config.get('GOOGLE_CLIENT_ID')
+        if not client_id:
+            return jsonify({"message": "Google Client ID not configured on server"}), 500
+
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+
+        # ID token is valid. Get the user's Google ID and email.
+        email = idinfo['email']
+        name = idinfo.get('name', '')
+
+        # Check if user exists
+        user = user_datastore.find_user(email=email)
+
+        if not user:
+            # Create a new user if they don't exist
+            # Generate a random password (it won't be used for Google login)
+            random_password = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+            user = user_datastore.create_user(
+                email=email,
+                password=random_password,
+                name=name,
+                active=True,
+                roles=['customer']
+            )
+            db.session.commit()
+
+        # Generate auth token
+        auth_token = user.get_auth_token()
+
+        return jsonify({
+            "message": "Google Login Successful",
+            "token": auth_token,
+            "user": {
+                "id": user.id, "email": user.email, "name": user.name, "roles": [r.name for r in user.roles]
+            }
+        }), 200
+
+    except ValueError:
+        # Invalid token
+        return jsonify({"message": "Invalid Google token"}), 401
+    except Exception as e:
+        print(f"GOOGLE LOGIN ERROR: {e}")
+        return jsonify({"message": str(e)}), 500
+
 
 # --- ========================= ---
 # --- RESTAURANT OWNER API ROUTES ---

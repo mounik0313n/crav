@@ -11,21 +11,22 @@ const CustomerRestaurantDetailPage = {
             <div v-if="error" class="container my-5"><div class="alert alert-danger">{{ error }}</div></div>
 
             <div v-if="!loading && !error && restaurant">
-                <div class="restaurant-header text-center">
+                <div class="restaurant-header text-center py-5 bg-light">
                     <div class="container">
-                        <h1 class="restaurant-title">{{ restaurant.name }}</h1>
-                        <div class="mb-2" v-if="restaurant.reviews > 0">
-                            <span class="text-warning h5">★</span>
-                            <strong class="h5">{{ restaurant.rating }}</strong>
-                            <small class="text-muted">({{ restaurant.reviews }} reviews)</small>
+                        <h1 class="font-weight-bold mb-3">{{ restaurant.name }}</h1>
+                        <div class="mb-3" v-if="restaurant.reviews > 0">
+                            <span class="badge badge-warning text-dark px-3 py-2">
+                                <i class="fas fa-star mr-1"></i> {{ restaurant.rating }}
+                            </span>
+                            <small class="text-muted ml-2">({{ restaurant.reviews }} reviews)</small>
                         </div>
-                        <div v-else class="text-muted mb-2">No reviews yet</div>
-                        <p class="lead text-muted">{{ restaurant.cuisine }}</p>
-                        <p>{{ restaurant.description }}</p>
-                        <p><strong>Address:</strong> {{ restaurant.address }}</p>
+                        <div v-else class="text-muted mb-3">No reviews yet</div>
+                        <p class="lead text-dark font-weight-bold mb-2">{{ restaurant.cuisine }}</p>
+                        <p class="text-muted mb-4">{{ restaurant.description }}</p>
+                        <p class="mb-4"><strong>Address:</strong> {{ restaurant.address }}</p>
                         
-                        <button v-if="isCustomer" class="btn btn-sm btn-outline-danger" @click="toggleFavorite">
-                            <i :class="isFavorite ? 'fas fa-heart' : 'far fa-heart'"></i>
+                        <button v-if="isCustomer" class="btn btn-outline-brand" @click="toggleFavorite">
+                            <i :class="isFavorite ? 'fas fa-heart text-danger' : 'far fa-heart'"></i>
                             {{ isFavorite ? 'Favorited' : 'Add to Favorites' }}
                         </button>
                     </div>
@@ -34,7 +35,7 @@ const CustomerRestaurantDetailPage = {
                 <div class="container my-5">
                     <!-- Menu Items Section -->
                     <div v-for="category in restaurant.categories" :key="category.id" class="mb-5">
-                        <h2 class="category-title">{{ category.name }}</h2>
+                        <h2 class="font-weight-bold mb-4">{{ category.name }}</h2>
                         <hr>
                         <div v-if="category.menu_items.length === 0" class="text-muted"><p>No items in this category yet.</p></div>
                         <div v-else class="row">
@@ -46,20 +47,23 @@ const CustomerRestaurantDetailPage = {
                     
                     <!-- Reviews Section -->
                     <hr class="my-5">
-                    <h2 class="category-title">What People Are Saying</h2>
-                    <div v-if="reviewsLoading" class="text-muted">Loading reviews...</div>
-                    <div v-if="!reviewsLoading && reviews.length === 0" class="alert alert-light">Be the first to review this restaurant!</div>
+                    <h2 class="font-weight-bold mb-4">What People Are Saying</h2>
+                    <div v-if="reviewsLoading" class="text-center py-4">
+                        <div class="spinner-border text-brand" role="status"></div>
+                    </div>
+                    <div v-if="!reviewsLoading && reviews.length === 0" class="alert alert-light border">Be the first to review this restaurant!</div>
                     <div v-if="!reviewsLoading && reviews.length > 0" class="mt-4">
-                        <div v-for="review in reviews" :key="review.id" class="card mb-3">
+                        <div v-for="review in reviews" :key="review.id" class="card shadow-sm mb-4 border-0">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <h5 class="card-title">{{ review.customerName }}</h5>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="font-weight-bold mb-0">{{ review.customerName }}</h5>
                                     <span class="text-muted small">{{ review.date }}</span>
                                 </div>
-                                <div class="mb-2">
-                                    <span class="text-warning">{{ '★'.repeat(review.rating) }}</span><span class="text-muted">{{ '☆'.repeat(5 - review.rating) }}</span>
+                                <div class="mb-3">
+                                    <span class="text-warning mr-1" v-for="i in review.rating">★</span>
+                                    <span class="text-muted small">({{ review.rating }}/5)</span>
                                 </div>
-                                <p class="card-text">{{ review.comment }}</p>
+                                <p class="card-text text-muted">{{ review.comment }}</p>
                             </div>
                         </div>
                     </div>
@@ -69,11 +73,11 @@ const CustomerRestaurantDetailPage = {
     `,
     data() {
         return {
-            loading: true, 
-            error: null, 
-            restaurant: null, 
+            loading: true,
+            error: null,
+            restaurant: null,
             isFavorite: false,
-            reviewsLoading: true, 
+            reviewsLoading: true,
             reviews: []
         };
     },
@@ -87,14 +91,28 @@ const CustomerRestaurantDetailPage = {
         await this.fetchRestaurantDetails();
         if (this.restaurant) {
             await this.fetchReviews();
-            if (this.isCustomer) { 
+            if (this.isCustomer) {
                 await this.checkIfFavorite();
             }
         }
+        this.initRevealAnimations();
     },
     methods: {
+        initRevealAnimations() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            this.$nextTick(() => {
+                document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+            });
+        },
         async fetchRestaurantDetails() {
-            this.loading = true; 
+            this.loading = true;
             this.error = null;
             try {
                 const restaurantId = this.$route.params.id;
@@ -159,9 +177,9 @@ const CustomerRestaurantDetailPage = {
                 this.$router.push('/login');
                 return;
             }
-            this.$store.dispatch('addItemToCart', { 
-                item: item, 
-                restaurantId: this.restaurant.id 
+            this.$store.dispatch('addItemToCart', {
+                item: item,
+                restaurantId: this.restaurant.id
             });
             alert(`${item.name} has been added to your cart!`);
         }

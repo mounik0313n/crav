@@ -3,16 +3,20 @@
 
 /* --- 1. Root Variables & Base Styles --- */
 :root {
-    --brand-primary: #FF7043; /* Appetizing orange */
-    --brand-accent: #00BFA6;  /* Vibrant mint green */
-    --text-primary: #1F2937;  /* Darker gray for better contrast */
+    --brand-primary: #FF7043;
+    /* Appetizing orange */
+    --brand-accent: #00BFA6;
+    /* Vibrant mint green */
+    --text-primary: #1F2937;
+    /* Darker gray for better contrast */
     --text-secondary: #6B7280;
     --surface-color: #FFFFFF;
-    --background-color: #FFFBF8; 
-    --border-color: #F3F4F6; /* Lighter border for subtlety */
-    --shadow-sm: 0 4px 8px rgba(0,0,0,0.03);
-    --shadow-md: 0 10px 20px rgba(0,0,0,0.05);
-    --shadow-lg: 0 25px 50px rgba(0,0,0,0.07);
+    --background-color: #FFFBF8;
+    --border-color: #F3F4F6;
+    /* Lighter border for subtlety */
+    --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.03);
+    --shadow-md: 0 10px 20px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 25px 50px rgba(0, 0, 0, 0.07);
 }
 
 body {
@@ -53,15 +57,20 @@ section {
     box-shadow: var(--shadow-lg);
     padding: 0.5rem 0;
 }
+
 .dropdown-item {
-    color: var(--text-primary) !important; /* Ensures text is always visible */
+    color: var(--text-primary) !important;
+    /* Ensures text is always visible */
     font-weight: 500;
     padding: 0.75rem 1.5rem;
 }
-.dropdown-item:hover, .dropdown-item:focus {
+
+.dropdown-item:hover,
+.dropdown-item:focus {
     color: var(--brand-primary) !important;
     background-color: var(--background-color);
 }
+
 /* ✅ END: DROPDOWN MENU FIX */
 
 
@@ -73,6 +82,7 @@ section {
     border: none;
     transition: all 0.2s ease-in-out;
 }
+
 /* This is a button, not a dropdown menu itself */
 .btn.dropdown-toggle {
     background-color: var(--surface-color);
@@ -85,6 +95,7 @@ section {
     color: white;
     box-shadow: 0 4px 15px rgba(255, 112, 67, 0.2);
 }
+
 .btn-brand:hover {
     color: white;
     transform: translateY(-3px);
@@ -96,7 +107,9 @@ section {
     border: 2px solid var(--brand-primary);
     background: transparent;
 }
-.btn-outline-brand:hover, .btn-outline-brand.active {
+
+.btn-outline-brand:hover,
+.btn-outline-brand.active {
     color: white;
     background-color: var(--brand-primary);
     transform: translateY(-2px);
@@ -112,6 +125,7 @@ section {
     transition: all 0.3s ease;
     overflow: hidden;
 }
+
 .card:hover {
     transform: translateY(-10px);
     box-shadow: var(--shadow-lg);
@@ -123,20 +137,28 @@ section {
 .hero-section {
     background-image: radial-gradient(circle at 50% 50%, #fffbf8, #fff7f2);
 }
+
 .hero-title {
     font-size: 3.8rem;
     font-weight: 700;
     line-height: 1.2;
 }
 
+.text-brand {
+    color: var(--brand-primary) !important;
+}
+
 /* Restaurant & Menu Cards */
-.restaurant-card .card-img-top, .menu-card .card-img-top {
+.restaurant-card .card-img-top,
+.menu-card .card-img-top {
     height: 220px;
     object-fit: cover;
 }
+
 .card-title {
     font-weight: 600;
 }
+
 .card-text {
     color: var(--text-secondary);
 }
@@ -145,14 +167,18 @@ section {
 .login-container {
     padding: 4rem 0;
 }
-.login-card, .profile-card {
+
+.login-card,
+.profile-card {
     max-width: 450px;
     margin: auto;
     box-shadow: var(--shadow-lg);
 }
+
 .form-control {
     border-radius: 10px;
-    padding: 1rem 1rem; /* Adjusted padding for better vertical alignment */
+    padding: 1rem 1rem;
+    /* Adjusted padding for better vertical alignment */
     background-color: #F9FAFB;
     border: 1px solid var(--border-color);
     transition: all 0.2s ease-in-out;
@@ -161,6 +187,7 @@ section {
     /* ✅ FIX: Explicitly set text color for all form controls */
     color: var(--text-primary);
 }
+
 .form-control:focus {
     box-shadow: 0 0 0 4px rgba(255, 112, 67, 0.2);
     border-color: var(--brand-primary);
@@ -194,42 +221,69 @@ select.form-control {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-.status-badge.completed { background-color: #DCFCE7; color: #166534; }
-.status-badge.preparing, .status-badge.placed, .status-badge.ready { background-color: #FEF9C3; color: #854D0E; }
-.status-badge.cancelled, .status-badge.rejected { background-color: #F3F4F6; color: #4B5563; }
-.status-badge.refunded { background-color: #374151; color: #F9FAFB; }
+
+.status-badge.completed {
+    background-color: #DCFCE7;
+    color: #166534;
+}
+
+.status-badge.preparing,
+.status-badge.placed,
+.status-badge.ready {
+    background-color: #FEF9C3;
+    color: #854D0E;
+}
+
+.status-badge.cancelled,
+.status-badge.rejected {
+    background-color: #F3F4F6;
+    color: #4B5563;
+}
+
+.status-badge.refunded {
+    background-color: #374151;
+    color: #F9FAFB;
+}
 
 /* Admin & Restaurant Portal */
 .admin-container {
     padding: 2rem;
     background-color: #F9FAFB;
 }
+
 .admin-page-title {
     font-weight: 700;
 }
+
 .card-header.bg-white {
     background-color: #fff !important;
     border-bottom: 1px solid var(--border-color);
 }
+
 .table {
     font-size: 0.9rem;
 }
-.table > tbody > tr > td {
+
+.table>tbody>tr>td {
     color: var(--text-secondary);
 }
-.table > thead > tr > th {
+
+.table>thead>tr>th {
     color: var(--text-primary);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border: none;
 }
+
 .table-hover tbody tr:hover {
     background-color: #F9FAFB;
 }
+
 .stat-card:hover {
     border-color: var(--brand-primary);
 }
+
 .stat-number {
     color: var(--brand-primary);
 }
@@ -241,12 +295,14 @@ select.form-control {
     padding: 20px;
     height: 100%;
 }
+
 .order-card {
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
     border-left: 4px solid var(--brand-primary);
     margin-bottom: 1rem;
 }
+
 .order-card:hover {
     box-shadow: var(--shadow-md);
 }
@@ -262,17 +318,95 @@ select.form-control {
 }
 
 .star {
-    font-size: 2.5rem;          /* Make the stars bigger */
-    color: #d3d3d3;             /* Default color for an empty star (light gray) */
-    cursor: pointer;            /* Show a hand cursor on hover */
-    transition: color 0.2s;     /* Smooth color transition */
-    padding: 0 5px;             /* Add some space between stars */
+    font-size: 2.5rem;
+    /* Make the stars bigger */
+    color: #d3d3d3;
+    /* Default color for an empty star (light gray) */
+    cursor: pointer;
+    /* Show a hand cursor on hover */
+    transition: color 0.2s;
+    /* Smooth color transition */
+    padding: 0 5px;
+    /* Add some space between stars */
 }
 
 .star:hover {
-    color: #ffc107;             /* Gold color on hover */
+    color: #ffc107;
+    /* Gold color on hover */
 }
 
 .star.filled {
-    color: #ffc107;             /* Gold color for a selected (filled) star */
+    color: #ffc107;
+    /* Gold color for a selected (filled) star */
+}
+
+/* --- 7. Google Sign-In & Separator --- */
+.separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #999;
+}
+
+.separator::before,
+.separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+}
+
+.separator:not(:empty)::before {
+    margin-right: .5em;
+}
+
+.separator:not(:empty)::after {
+    margin-left: .5em;
+}
+
+/* --- 8. Pickup / Dine-in Switcher (Restored Logic Style) --- */
+.mode-switcher {
+    background: #eee;
+    border-radius: 50px;
+    padding: 2px;
+    display: inline-flex;
+    position: relative;
+}
+
+.mode-btn {
+    padding: 6px 20px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    z-index: 1;
+    border: none;
+    background: transparent;
+    transition: color 0.3s;
+}
+
+.mode-btn.active {
+    color: white;
+}
+
+.mode-indicator {
+    position: absolute;
+    height: calc(100% - 4px);
+    background: var(--brand-primary);
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+/* --- 9. PWA Install Modal (Restored) --- */
+#pwa-install-modal {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    border: 1px solid var(--brand-primary);
 }

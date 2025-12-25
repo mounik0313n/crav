@@ -6,12 +6,12 @@ const CustomerHomePage = {
     },
     template: `
         <div>
-            <!-- HERO SECTION (Unchanged) -->
+            <!-- HERO SECTION -->
             <section class="hero-section">
                 <div class="container">
                     <div class="row align-items-center">
                         <div class="col-lg-6 text-center text-lg-left">
-                            <h1 class="hero-title">All Fast Food is Available at <span class="text-brand">Foodle</span></h1>
+                            <h1 class="hero-title">All Fast Food is Available at <span class="text-brand">Crav</span></h1>
                             <p class="my-4">We Are Just A Click Away When You Crave For Delicious Fast Food</p>
                             <button class="btn btn-brand btn-lg" @click="scrollToFeatured">Order Now</button>
                         </div>
@@ -23,10 +23,10 @@ const CustomerHomePage = {
             </section>
             
 
-            <!-- ✅ START: MODIFIED RESTAURANTS SECTION -->
+            <!-- RESTAURANTS SECTION -->
             <section class="restaurants-section text-center" id="nearby-restaurants">
                 <div class="container">
-                    <h2>Restaurants <span class="text-brand">Near You</span></h2>
+                    <h2 class="mb-4">Restaurants <span class="text-brand">Near You</span></h2>
                     <p>Delicious food from local restaurants, right at your fingertips.</p>
                     
                     <!-- GEOLOCATION STATUS MESSAGES -->
@@ -50,24 +50,30 @@ const CustomerHomePage = {
                     </div>
                 </div>
             </section>
-            <!-- ✅ END: MODIFIED RESTAURANTS SECTION -->
 
-            <!-- REGULAR MENU & FOOTER (Unchanged) -->
+             <!-- REGULAR MENU -->
              <section class="menu-section text-center bg-light">
                  <div class="container">
-                     <h2>Our Regular <span class="text-brand">Menu</span></h2>
+                     <h2 class="mb-4">Our Regular <span class="text-brand">Menu</span></h2>
                      <p>These Are Our Regular Menus, You Can Order Anything You Like.</p>
-                     <div v-if="menuLoading" class="mt-5">Loading menu...</div>
+                     
+                     <div v-if="menuLoading" class="mt-5">
+                        <div class="spinner-border text-brand" role="status"></div>
+                        <p class="mt-2">Loading menu...</p>
+                     </div>
                      <div v-if="menuError" class="alert alert-danger mt-5">{{ menuError }}</div>
+                     
                      <div v-if="!menuLoading && !menuError" class="row mt-5">
                          <div v-for="item in menu" :key="item.id" class="col-lg-4 col-md-6 mb-4">
-                            <div class="card menu-card h-100">
-                                <div class="menu-img-container"><img :src="item.image" class="card-img-top" :alt="item.name"></div>
+                            <div class="card menu-card h-100 shadow-sm border-0">
+                                <div class="menu-img-container">
+                                    <img :src="item.image" class="card-img-top" :alt="item.name" style="height: 220px; object-fit: cover;">
+                                </div>
                                 <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title">{{ item.name }}</h5>
+                                    <h5 class="card-title font-weight-bold">{{ item.name }}</h5>
                                     <div class="d-flex justify-content-between align-items-center mt-auto pt-3">
-                                        <h4>₹{{ item.price.toLocaleString('en-IN') }}</h4>
-                                        <button class="btn btn-brand" @click="addToCart(item)">Buy Now</button>
+                                        <h4 class="mb-0 text-brand">₹{{ item.price.toLocaleString('en-IN') }}</h4>
+                                        <button class="btn btn-brand btn-sm" @click="addToCart(item)">Buy Now</button>
                                     </div>
                                 </div>
                             </div>
@@ -75,16 +81,21 @@ const CustomerHomePage = {
                      </div>
                  </div>
              </section>
-             <footer class="footer-section"> ... </footer>
+             
+             <footer class="footer-section py-5 bg-dark text-white text-center">
+                 <div class="container">
+                    <p>&copy; 2024 Crav Application. All Rights Reserved.</p>
+                 </div>
+             </footer>
         </div>
     `,
     data() {
         return {
-            loading: true, 
-            error: null, 
+            loading: true,
+            error: null,
             restaurants: [],
-            menuLoading: true, 
-            menuError: null, 
+            menuLoading: true,
+            menuError: null,
             menu: [],
             // --- ✅ START: GEOLOCATION STATE ---
             isLocating: true,
@@ -93,11 +104,29 @@ const CustomerHomePage = {
         }
     },
     mounted() {
-        // --- ✅ MODIFIED: We now try to find nearby restaurants first ---
         this.findNearbyRestaurants();
         this.fetchRegularMenu();
+        this.initRevealAnimations();
     },
     methods: {
+        initRevealAnimations() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            // Apply to all elements with 'reveal' class
+            this.$nextTick(() => {
+                document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+            });
+        },
+        scrollToMenu() {
+            const el = document.getElementById('regular-menu');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+        },
         // --- ✅ START: NEW GEOLOCATION METHODS ---
         findNearbyRestaurants() {
             this.isLocating = true;
@@ -117,11 +146,11 @@ const CustomerHomePage = {
                         const response = await fetch(`/api/restaurants/nearby?lat=${latitude}&lng=${longitude}`);
                         const data = await response.json();
                         if (!response.ok) throw new Error("Could not fetch nearby restaurants.");
-                        
+
                         this.restaurants = data;
                         if (data.length === 0) {
                             // If no nearby are found, fetch featured as a fallback
-                           this.fetchFeaturedRestaurants();
+                            this.fetchFeaturedRestaurants();
                         }
                     } catch (err) {
                         this.locationError = err.message;
@@ -133,7 +162,7 @@ const CustomerHomePage = {
                 },
                 (error) => {
                     this.isLocating = false;
-                    switch(error.code) {
+                    switch (error.code) {
                         case error.PERMISSION_DENIED:
                             this.locationError = "You denied the request for Geolocation.";
                             break;
@@ -155,14 +184,14 @@ const CustomerHomePage = {
 
         // Renamed from fetchRestaurants to fetchFeaturedRestaurants to be more specific
         async fetchFeaturedRestaurants() {
-            this.loading = true; 
+            this.loading = true;
             this.error = null;
             try {
                 const response = await fetch('/api/restaurants/featured');
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message || "Failed to load restaurants.");
                 // If restaurants are already populated by nearby search, don't overwrite
-                if(this.restaurants.length === 0) {
+                if (this.restaurants.length === 0) {
                     this.restaurants = data;
                 }
             } catch (err) { this.error = err.message; } finally { this.loading = false; }
@@ -183,8 +212,8 @@ const CustomerHomePage = {
                 this.$router.push('/login');
                 return;
             }
-            this.$store.dispatch('addItemToCart', { 
-                item: item, 
+            this.$store.dispatch('addItemToCart', {
+                item: item,
                 restaurantId: item.restaurantId
             });
             alert(`${item.name} has been added to your cart!`);
