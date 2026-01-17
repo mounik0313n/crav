@@ -16,6 +16,16 @@ class Config:
     SQLALCHEMY_DATABASE_URI = database_url
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # Caching configuration
+    # If REDIS_URL is provided via environment, use RedisCache; otherwise default to simple in-memory cache.
+    REDIS_URL = os.environ.get('REDIS_URL')
+    if REDIS_URL:
+        CACHE_TYPE = os.environ.get('CACHE_TYPE', 'RedisCache')
+        CACHE_REDIS_URL = REDIS_URL
+    else:
+        CACHE_TYPE = os.environ.get('CACHE_TYPE', 'SimpleCache')
+
 
     # --- Flask-Security-Too Configuration ---
     SECURITY_PASSWORD_SALT = os.environ.get('SECURITY_PASSWORD_SALT')
@@ -28,6 +38,9 @@ class Config:
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES = 86400  # 24 hours in seconds
     GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+    # Razorpay credentials (optional)
+    RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
+    RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
 
 
 class ProductionConfig(Config):
@@ -36,6 +49,9 @@ class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
 
+      # Razorpay test keys for local development
+    RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_Ro0ehBTT9I1ZS1')
+    RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '2aAV1Ss6G12ObEncXLJjkBWp')
 
 class LocalDevelopmentConfig(Config):
     """Local development configuration."""

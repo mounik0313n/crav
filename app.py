@@ -8,9 +8,10 @@ from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 
 # your extension imports
-from backend.extensions import db, security, api, migrate
+from backend.extensions import db, security, api, migrate,cache
 from backend.config import LocalDevelopmentConfig, ProductionConfig
 from backend.security import user_datastore
+
 
 
 def createApp():
@@ -42,6 +43,7 @@ def createApp():
     db.init_app(app)
     api.init_app(app)
     migrate.init_app(app, db)
+    cache.init_app(app)
     security.init_app(app, user_datastore)
 
     # JWT
