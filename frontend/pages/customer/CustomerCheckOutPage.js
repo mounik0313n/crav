@@ -100,6 +100,7 @@ const CustomerCheckoutPage = {
                     </div>
                 </div>
 
+
                 <div class="col-lg-5">
                     <div class="card order-summary-card">
                         <div class="card-body">
@@ -119,8 +120,8 @@ const CustomerCheckoutPage = {
                                     <h5>Total</h5><h5>₹{{ total.toLocaleString('en-IN') }}</h5>
                                 </li>
                             </ul>
-                            <button class="btn btn-brand btn-block mt-4" @click="placeOrder" :disabled="isPlacing || (isScheduling && !selectedTime)">
-                                {{ isPlacing ? 'Placing Order...' : 'Place Order' }}
+                            <button class="btn btn-brand btn-block mt-4" @click="placeOrder" :disabled="isPlacing || isPaying || (isScheduling && !selectedTime)">
+                                {{ isPaying ? 'Processing Payment...' : (isPlacing ? 'Placing Order...' : 'Place Order') }}
                             </button>
                         </div>
                     </div>
@@ -128,26 +129,39 @@ const CustomerCheckoutPage = {
             </div>
         </div>
     `,
-    data() {
+data() {
         return {
-            isPlacing: false, error: null, deliveryFee: 50.00, orderType: 'takeaway',
+            isPlacing: false,
+            isPaying: false,
+            error: null,
+            deliveryFee: 50.00,
+            orderType: 'takeaway',
             scheduleChoice: 'now',
-            slotsLoading: true, slotsError: null, availableDays: [],
-            selectedDate: null, selectedTime: null,
-            isApplyingCoupon: false, couponCode: '', couponError: null, appliedCoupon: null,
+            slotsLoading: true,
+            slotsError: null,
+            availableDays: [],
+            selectedDate: null,
+            selectedTime: null,
+            isApplyingCoupon: false,
+            couponCode: '',
+            couponError: null,
+            appliedCoupon: null,
             discountAmount: 0,
-            
             availableCoupons: [],
-            couponsLoading: true,
+            couponsLoading: true
         };
     },
-    computed: {
+     computed: {
         ...Vuex.mapGetters(['cartItems', 'cartTotal', 'cartRestaurantId']),
-        subtotal() { return this.cartTotal; },
+        subtotal() { 
+            return this.cartTotal; 
+        },
         total() { 
             return Math.max(0, this.subtotal + this.deliveryFee - this.discountAmount); 
         },
-        isScheduling() { return this.orderType === 'dine_in' || this.scheduleChoice === 'later'; },
+        isScheduling() { 
+            return this.orderType === 'dine_in' || this.scheduleChoice === 'later'; 
+        },
         slotsForSelectedDay() {
             if (!this.selectedDate) return [];
             const day = this.availableDays.find(d => d.date_value === this.selectedDate);
@@ -163,43 +177,43 @@ const CustomerCheckoutPage = {
                 this.selectedTime = null;
             }
         },
-        selectedDate() { this.selectedTime = null; }
+        selectedDate() { 
+            this.selectedTime = null; 
+        }
     },
-    async mounted() {
-        await this.fetchAvailableSlots();
-        await this.fetchApplicableCoupons();
+    mounted() {
+         this.fetchAvailableSlots();
+         this.fetchApplicableCoupons();
     },
     methods: {
         selectOrderType(type) {
             this.orderType = type;
-            if (type === 'dine_in') {
-                this.scheduleChoice = 'later';
-            } else {
-                this.scheduleChoice = 'now';
-            }
+            this.selectedDate = null;
+            this.selectedTime = null;
+            this.appliedCoupon = null;
+            this.discountAmount = 0;
+            this.availableDays = [];
         },
         async fetchAvailableSlots() {
-            if (!this.cartRestaurantId) { this.slotsError = "Cart is empty."; this.slotsLoading = false; return; }
-            this.slotsLoading = true; this.slotsError = null;
+            if (!this.isScheduling || !this.selectedDate) return;
+            this.slotsLoading = true;
             try {
-                this.availableDays = await apiService.get(`/api/restaurants/${this.cartRestaurantId}/available-slots`);
-                if (this.availableDays.length === 0) {
-                    this.slotsError = "This restaurant has no scheduled time slots available.";
-                }
+                const data = await apiService.get(`/api/restaurant/${this.cartRestaurantId}/available-slots?date=${this.selectedDate}`);
+                this.availableDays = data.days || [];
             } catch (err) {
-                this.slotsError = err.message;
+                console.error('Failed to fetch slots', err);
+                this.slotsError = 'Failed to load available slots';
             } finally {
                 this.slotsLoading = false;
             }
         },
-
         async fetchApplicableCoupons() {
             if (!this.cartRestaurantId) return;
             this.couponsLoading = true;
             try {
                 this.availableCoupons = await apiService.get(`/api/coupons/applicable/${this.cartRestaurantId}`);
             } catch (err) {
-                console.error(err.message); 
+                console.error('Failed to fetch coupons:', err.message);
             } finally {
                 this.couponsLoading = false;
             }
@@ -214,7 +228,6 @@ const CustomerCheckoutPage = {
             this.couponCode = coupon.code;
             this.applyCoupon();
         },
-        
         async applyCoupon() {
             if (!this.couponCode) {
                 this.couponError = "Please enter a coupon code.";
@@ -224,26 +237,126 @@ const CustomerCheckoutPage = {
             this.couponError = null;
             try {
                 const data = await apiService.post('/api/coupons/apply', {
-                        code: this.couponCode,
-                        subtotal: this.subtotal,
-                        restaurant_id: this.cartRestaurantId
+                    code: this.couponCode,
+                    subtotal: this.subtotal,
+                    restaurant_id: this.cartRestaurantId
                 });
                 this.discountAmount = data.discount;
                 this.appliedCoupon = this.couponCode;
-                
             } catch (err) {
                 this.couponError = err.message;
             } finally {
                 this.isApplyingCoupon = false;
             }
         },
+         loadRazorpayScript() {
+            return new Promise((resolve, reject) => {
+                if (window.Razorpay) return resolve(true);
+                const script = document.createElement('script');
+                script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                script.onload = () => resolve(true);
+                script.onerror = () => reject(new Error('Razorpay SDK failed to load'));
+                document.body.appendChild(script);
+            });
+        },
+        async payWithRazorpay(orderId) {
+             try {
+                // Request server to create Razorpay order first (may use mock in dev)
+                this.isPaying = true;
+                const res = await apiService.post('/api/payments/create', { order_id: orderId });
+                const { razorpay_order_id, razorpay_key, amount } = res;
+         // Try to load Razorpay script
+            try {
+                await this.loadRazorpayScript();
+                    
+                // Real Razorpay checkout
+                const options = {
+                key: razorpay_key,
+                amount: amount,
+                currency: 'INR',
+                name: 'Cravt',
+                description: `Order #${orderId}`,
+                order_id: razorpay_order_id,
+                handler: async (response) => {
+                this.isPaying = false;
+                // Verify payment with server
+                try {
+                const verify = await apiService.post('/api/payments/verify', {
+                                    order_id: orderId,
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature
+                                });
+                                    // Success: clear cart and navigate to order detail
+                                this.$store.dispatch('clearCart');
+                                alert('Payment successful!');
+                                this.$router.push({ name: 'OrderDetail', params: { id: orderId } });
+                            } catch (verErr) {
+                                console.error('Verification failed', verErr);
+                                alert('Payment succeeded but verification failed. Please contact support.');
+                                this.$router.push({ name: 'OrderDetail', params: { id: orderId } });
+                            }
+                        },
+                        prefill: {
+                            name: (this.$store && this.$store.getters && this.$store.getters.currentUser) ? (this.$store.getters.currentUser.name || '') : '',
+                            email: (this.$store && this.$store.getters && this.$store.getters.currentUser) ? (this.$store.getters.currentUser.email || '') : ''
+                        },
+                        theme: { color: '#E65100' }
+                    };
+        const rzp = new window.Razorpay(options);
+                    rzp.on('payment.failed', (resp) => {
+                        this.isPaying = false;
+                        console.error('Payment failed', resp);
+                        alert('Payment failed: ' + (resp.error && resp.error.description || 'Unknown error'));
+                    });
+                    rzp.open();
+                    
+                } catch (razorpayLoadError) {
+                    // Razorpay SDK not available (development mode)
+                    console.log('Razorpay SDK not available, using development mode payment');
+                    
+                    // In development, simulate payment with mock data
+                    const mockPaymentId = 'pay_dev_' + Math.random().toString(36).substr(2, 9);
+                    const mockSignature = 'mock_signature_' + Math.random().toString(36).substr(2, 9);
+                    
+                    this.isPaying = false;
+                    try {
+                        const verify = await apiService.post('/api/payments/verify', {
+                            order_id: orderId,
+                            razorpay_order_id: razorpay_order_id,
+                            razorpay_payment_id: mockPaymentId,
+                            razorpay_signature: mockSignature
+                        });
+
+                        // Success: clear cart and navigate to order detail
+                        this.$store.dispatch('clearCart');
+                        alert('Payment processed successfully (Development Mode)');
+                        this.$router.push({ name: 'OrderDetail', params: { id: orderId } });
+                    } catch (verErr) {
+                        console.error('Verification failed', verErr);
+                        alert('Payment processing failed.');
+                        this.$router.push({ name: 'OrderDetail', params: { id: orderId } });
+                    }
+                }
+
+            } catch (e) {
+                this.isPaying = false;
+                console.error('Payment error:', e);
+                alert('Unable to start payment: ' + (e.message || e));
+                // Fallback: redirect to order detail
+                this.$router.push({ name: 'OrderDetail', params: { id: orderId } });
+            }
+        },
         async placeOrder() {
-            this.isPlacing = true; this.error = null;
+            this.isPlacing = true;
+            this.error = null;
+            
             if (this.isScheduling && !this.selectedTime) {
                 this.error = "Please select a time slot for your scheduled order.";
-                this.isPlacing = false; return;
+                this.isPlacing = false;
+                return;
             }
-            
+
             let payload = {
                 restaurant_id: this.cartRestaurantId,
                 order_type: this.orderType,
@@ -253,18 +366,19 @@ const CustomerCheckoutPage = {
             };
 
             try {
+                // Create internal order first
                 const data = await apiService.post('/api/orders', payload);
-                
-                this.$store.dispatch('clearCart');
-                alert(data.message);
-                this.$router.push({ name: 'OrderDetail', params: { id: data.order_id } });
+                const orderId = data.order_id;
+
+                // Start Razorpay payment flow for this order
+                await this.payWithRazorpay(orderId);
+
             } catch (err) {
-                this.error = err.message;
+                this.error = err.message || "Failed to place order.";
             } finally {
-                this.isPlacing =  false;
+                this.isPlacing = false;
             }
         }
     }
 };
-
 export default CustomerCheckoutPage;
