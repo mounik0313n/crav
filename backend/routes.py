@@ -1015,7 +1015,7 @@ def verify_razorpay_payment():
     # Mark payment success
     order.razorpay_payment_id = razorpay_payment_id
     order.payment_status = 'paid'
-    order.status = 'completed'
+    order.status = 'placed'
     db.session.commit()
 
     try:
@@ -2523,6 +2523,7 @@ def debug_token():
 #def serve_vue_app(path):
 
  #   return render_template('index.html')
+
 
 
 
