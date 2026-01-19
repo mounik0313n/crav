@@ -184,9 +184,11 @@ def register_restaurant():
         owner = user_datastore.create_user(
             email=data.get('ownerEmail'),
             password=data.get('password'),
-            name=data.get('ownerName'),
-            roles=['owner']
+            name=data.get('ownerName')
         )
+        owner_role = user_datastore.find_role('owner')
+        if owner_role:
+            user_datastore.add_role_to_user(owner, owner_role)
         db.session.commit()
 
         new_restaurant = Restaurant(
@@ -251,7 +253,9 @@ def get_all_restaurants():
                 'name': resto.name,
                 'ownerEmail': resto.owner.email if resto.owner else 'Owner Deleted',
                 'city': resto.city,
-                'status': status
+                'status': status,
+                'deliveryFee': resto.delivery_fee,
+                'platformFee': resto.platform_fee
             })
         
         return jsonify(restaurants_data), 200
@@ -401,7 +405,9 @@ def admin_get_all_orders():
             'restaurantName': order.restaurant.name if order.restaurant else 'N/A',
             'date': order.created_at.strftime('%b %d, %Y'),
             'total': order.total_amount,
-            'status': order.status.capitalize()
+            'status': order.status.capitalize(),
+            'deliveryFee': order.delivery_fee,
+            'platformFee': order.platform_fee
         } for order in orders]
         
         return jsonify(orders_data), 200
@@ -804,6 +810,11 @@ def place_order():
                 discount_amount = coupon.discount_value
             final_total = max(0, subtotal - discount_amount)
 
+    # --- 2b. Add Restaurant-Specific Fees ---
+    delivery_fee = restaurant.delivery_fee or 0.0
+    platform_fee = restaurant.platform_fee or 0.0
+    final_total += (delivery_fee + platform_fee)
+
     # --- 3. Handle Scheduled Time ---
     scheduled_time_obj = None # Use a different variable name to avoid confusion
     if data.get('scheduled_time'):
@@ -845,6 +856,8 @@ def place_order():
         items=order_items_to_create,
         coupon_code=coupon_code,
         discount_amount=round(discount_amount, 2),
+        delivery_fee=round(delivery_fee, 2),
+        platform_fee=round(platform_fee, 2),
         # --- 🛠️ THE FIX IS HERE ---
         is_scheduled=bool(scheduled_time_obj),
         scheduled_time=scheduled_time_obj 
@@ -1134,7 +1147,9 @@ def get_featured_restaurants():
                 'id': resto.id, 'name': resto.name, 'cuisine': 'Local Favorites',
                 'rating': round(float(stats.avg_rating or 0), 1),
                 'reviews': stats.review_count or 0,
-                'image': image_url # Use the dynamic image_url
+                'image': image_url,
+                'deliveryFee': resto.delivery_fee,
+                'platformFee': resto.platform_fee
             })
         
         return jsonify(restaurants_data), 200
@@ -1161,13 +1176,11 @@ def get_restaurant_details(restaurant_id):
         'id': restaurant.id, 'name': restaurant.name, 'description': restaurant.description, 'address': restaurant.address, 'city': restaurant.city, 'cuisine': 'Local Favorites', 
         'rating': round(float(stats.avg_rating or 0), 1),
         'reviews': stats.review_count or 0,
-        'categories': categories_data
+        'categories': categories_data,
+        'deliveryFee': restaurant.delivery_fee,
+        'platformFee': restaurant.platform_fee
     }
     return jsonify(restaurant_data), 200
-
-# In backend/routes.py
-
-# In backend/routes.py
 
 @app.route('/api/orders', methods=['GET'])
 @auth_required('token')
@@ -1198,6 +1211,11 @@ def get_order_history():
     except Exception as e:
         print(f"Error fetching order history: {e}")
         return jsonify({"message": "An error occurred while fetching your orders."}), 500
+
+
+# -----------------------------------------------------------------------------------------
+# ✅ EVERYTHING BELOW THIS POINT IS PART OF THE MAIN ROUTE DEFINITIONS
+# -----------------------------------------------------------------------------------------
 
 
         
@@ -1747,6 +1765,12 @@ def get_order_details(order_id):
         'order_type': order.order_type,
         'items': items_data,
         
+        # --- ✅ START: FEE & DISCOUNT INFO ---
+        'deliveryFee': order.delivery_fee,
+        'platformFee': order.platform_fee,
+        'discountAmount': order.discount_amount,
+        # --- ✅ END: FEE & DISCOUNT INFO ---
+
         # --- ✅ START: ADDED SCHEDULING INFO ---
         'is_scheduled': order.is_scheduled,
         'scheduled_date': None,
@@ -1797,7 +1821,9 @@ def admin_create_restaurant():
         owner_id=owner.id,
         latitude=data.get('latitude'),   # <-- ADDED
         longitude=data.get('longitude'), # <-- ADDED
-        is_verified=True
+        is_verified=True,
+        delivery_fee=data.get('deliveryFee', 0.0),
+        platform_fee=data.get('platformFee', 0.0)
     )
     db.session.add(new_restaurant)
     db.session.commit()
@@ -1815,13 +1841,28 @@ def admin_create_restaurant():
 def admin_update_restaurant(id):
     restaurant = Restaurant.query.get_or_404(id)
     data = request.get_json()
-    # ... (owner update logic remains the same) ...
 
+    # Handle owner updates
+    owner_email = data.get('ownerEmail')
+    if owner_email and owner_email != restaurant.owner.email:
+        new_owner = User.query.filter_by(email=owner_email).first()
+        if not new_owner or 'owner' not in [r.name for r in new_owner.roles]:
+            return jsonify({"message": f"User with email {owner_email} does not exist or is not an owner."}), 400
+        restaurant.owner_id = new_owner.id
+
+    # Update basic fields
     restaurant.name = data.get('name', restaurant.name)
     restaurant.address = data.get('address', restaurant.address)
     restaurant.city = data.get('city', restaurant.city)
-    restaurant.latitude = data.get('latitude', restaurant.latitude)   # <-- ADDED
-    restaurant.longitude = data.get('longitude', restaurant.longitude) # <-- ADDED
+    restaurant.latitude = data.get('latitude', restaurant.latitude)
+    restaurant.longitude = data.get('longitude', restaurant.longitude)
+    
+    # Update fees (ensure float conversion if needed)
+    try:
+        restaurant.delivery_fee = float(data.get('deliveryFee', restaurant.delivery_fee))
+        restaurant.platform_fee = float(data.get('platformFee', restaurant.platform_fee))
+    except (TypeError, ValueError):
+        pass # Fallback to existing or default
     
     db.session.commit()
     try:
@@ -2061,7 +2102,9 @@ def get_nearby_restaurants():
             'cuisine': 'Local Favorites', # You can enhance this later
             'rating': round(float(avg_rating), 1),
             'reviews': review_count,
-            'image': f'https://placehold.co/600x400/E65100/FFF?text={resto.name.replace(" ", "+")}'
+            'image': f'https://placehold.co/600x400/E65100/FFF?text={resto.name.replace(" ", "+")}',
+            'deliveryFee': resto.delivery_fee,
+            'platformFee': resto.platform_fee
         })
 
     return jsonify(restaurants_data), 200

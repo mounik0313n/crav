@@ -45,6 +45,7 @@ def createApp():
     migrate.init_app(app, db)
     cache.init_app(app)
     security.init_app(app, user_datastore)
+    cache.init_app(app)
 
     # JWT
     JWTManager(app)
@@ -57,7 +58,11 @@ def createApp():
     # Register routes (only import when app exists)
     with app.app_context():
         from backend import routes  # ensure your blueprint registrations run
-
+        from backend.create_initial_data import init_app as initalize_database
+        try:
+            initalize_database(app)
+        except Exception as e:
+            print(f"Error during initial data creation: {e}")
     return app
 
 

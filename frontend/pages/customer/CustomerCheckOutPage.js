@@ -113,6 +113,9 @@ const CustomerCheckoutPage = {
                                 <li class="list-group-item d-flex justify-content-between">
                                     <span>Delivery Fee</span><strong>₹{{ deliveryFee.toLocaleString('en-IN') }}</strong>
                                 </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Platform Fee</span><strong>₹{{ platformFee.toLocaleString('en-IN') }}</strong>
+                                </li>
                                 <li v-if="appliedCoupon" class="list-group-item d-flex justify-content-between text-success">
                                     <span>Discount</span><strong>-₹{{ discountAmount.toLocaleString('en-IN') }}</strong>
                                 </li>
@@ -362,7 +365,7 @@ data() {
                 order_type: this.orderType,
                 items: this.cartItems.map(item => ({ menu_item_id: item.id, quantity: item.quantity })),
                 coupon_code: this.appliedCoupon,
-                scheduled_time: this.selectedTime 
+                scheduled_time: this.selectedTime
             };
 
             try {

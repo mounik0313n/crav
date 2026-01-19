@@ -52,6 +52,11 @@ class Restaurant(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     gallery = db.Column(db.JSON, nullable=True)
 
+    # --- ✅ NEW: FEE FIELDS ADDED ---
+    delivery_fee = db.Column(db.Float, default=0.0)
+    platform_fee = db.Column(db.Float, default=0.0)
+    # --- ✅ END: FEE FIELDS ADDED ---
+
 
 
     owner = db.relationship('User', backref='restaurants_owned')
@@ -98,6 +103,18 @@ class Order(db.Model):
     scheduled_time = db.Column(db.DateTime, nullable=True)
     coupon_code = db.Column(db.String(50), nullable=True)
     discount_amount = db.Column(db.Float, default=0.0)
+
+    # --- ✅ NEW: FEE FIELDS ADDED ---
+    delivery_fee = db.Column(db.Float, default=0.0)
+    platform_fee = db.Column(db.Float, default=0.0)
+    # --- ✅ END: FEE FIELDS ADDED ---
+    
+    # Payment integration fields
+    razorpay_order_id = db.Column(db.String(255), nullable=True)
+    razorpay_payment_id = db.Column(db.String(255), nullable=True)
+    payment_status = db.Column(db.String(50), default='pending')
+    payment_amount = db.Column(db.Float, nullable=True)
+
     
     # Payment integration fields
     razorpay_order_id = db.Column(db.String(255), nullable=True)

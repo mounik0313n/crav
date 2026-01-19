@@ -1,8 +1,8 @@
-"""Added all tables
+"""Initial baseline with fees
 
-Revision ID: 353b392a00fe
+Revision ID: d8b510a7d338
 Revises: 
-Create Date: 2025-11-14 14:35:44.951969
+Create Date: 2026-01-19 08:10:59.764449
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '353b392a00fe'
+revision = 'd8b510a7d338'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -49,6 +49,8 @@ def upgrade():
     sa.Column('is_verified', sa.Boolean(), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.Column('gallery', sa.JSON(), nullable=True),
+    sa.Column('delivery_fee', sa.Float(), nullable=True),
+    sa.Column('platform_fee', sa.Float(), nullable=True),
     sa.ForeignKeyConstraint(['owner_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -93,6 +95,8 @@ def upgrade():
     sa.Column('total_amount', sa.Float(), nullable=False),
     sa.Column('status', sa.String(length=50), nullable=True),
     sa.Column('order_type', sa.String(length=50), nullable=False),
+    sa.Column('table_number', sa.String(length=20), nullable=True),
+    sa.Column('pickup_ready', sa.Boolean(), nullable=True),
     sa.Column('otp', sa.String(length=6), nullable=True),
     sa.Column('qr_payload', sa.String(length=255), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
@@ -100,6 +104,12 @@ def upgrade():
     sa.Column('scheduled_time', sa.DateTime(), nullable=True),
     sa.Column('coupon_code', sa.String(length=50), nullable=True),
     sa.Column('discount_amount', sa.Float(), nullable=True),
+    sa.Column('delivery_fee', sa.Float(), nullable=True),
+    sa.Column('platform_fee', sa.Float(), nullable=True),
+    sa.Column('razorpay_order_id', sa.String(length=255), nullable=True),
+    sa.Column('razorpay_payment_id', sa.String(length=255), nullable=True),
+    sa.Column('payment_status', sa.String(length=50), nullable=True),
+    sa.Column('payment_amount', sa.Float(), nullable=True),
     sa.ForeignKeyConstraint(['restaurant_id'], ['restaurant.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id'),

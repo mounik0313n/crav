@@ -4,16 +4,7 @@ const Navbar = {
             <div class="container">
                 <router-link class="navbar-brand font-weight-bold" to="/">Crav</router-link>
                 
-                <!-- Pickup / Dine-in Switcher -->
-                <div class="mode-switcher d-none d-md-flex mx-lg-4">
-                    <div class="mode-indicator" :style="indicatorStyle"></div>
-                    <button class="mode-btn" :class="{ 'active': serviceMode === 'dine-in' }" @click="setServiceMode('dine-in')">
-                        <i class="fas fa-chair mr-2"></i>Dine-in
-                    </button>
-                    <button class="mode-btn" :class="{ 'active': serviceMode === 'pickup' }" @click="setServiceMode('pickup')">
-                        <i class="fas fa-walking mr-2"></i>Pickup
-                    </button>
-                </div>
+                <!-- Brand Name Only -->
 
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
@@ -87,22 +78,15 @@ const Navbar = {
         isCustomer() { return this.userRoles.includes('customer'); },
         isOwner() { return this.userRoles.includes('owner'); },
         isAdmin() { return this.userRoles.includes('admin'); },
-        indicatorStyle() {
-            return this.serviceMode === 'dine-in'
-                ? { left: '4px', width: '100px' }
-                : { left: '104px', width: '90px' };
-        }
     },
     data() {
         return {
-            isScrolled: false,
-            serviceMode: localStorage.getItem('serviceMode') || 'dine-in'
+            isScrolled: false
         }
     },
     mounted() {
         window.addEventListener('scroll', this.handleScroll);
-        // Set initial mode globally if needed
-        document.documentElement.setAttribute('data-service-mode', this.serviceMode);
+        // Initial scroll check
     },
     beforeDestroy() {
         window.removeEventListener('scroll', this.handleScroll);
@@ -110,13 +94,6 @@ const Navbar = {
     methods: {
         handleScroll() {
             this.isScrolled = window.scrollY > 50;
-        },
-        setServiceMode(mode) {
-            this.serviceMode = mode;
-            localStorage.setItem('serviceMode', mode);
-            document.documentElement.setAttribute('data-service-mode', mode);
-            // Optionally emit event or refresh data
-            this.$root.$emit('service-mode-changed', mode);
         },
         navigateTo(path) {
             if (this.$route.path !== path) {

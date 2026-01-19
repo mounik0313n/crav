@@ -7,14 +7,19 @@ const RestaurantCard = {
                 <h5 class="card-title font-weight-bold">{{ restaurant.name }}</h5>
                 <p class="card-text text-muted mb-3">{{ restaurant.cuisine }}</p>
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                         <span class="badge badge-warning text-dark px-2 py-1">
-                            <i class="fas fa-star mr-1"></i> {{ restaurant.rating }}
-                        </span>
-                        <small class="text-muted ml-2">({{ restaurant.reviews }}+ reviews)</small>
+                    <div class="d-flex flex-column align-items-start">
+                        <div class="mb-2">
+                             <span class="badge badge-warning text-dark px-2 py-1">
+                                <i class="fas fa-star mr-1"></i> {{ restaurant.rating }}
+                            </span>
+                            <small class="text-muted ml-2">({{ restaurant.reviews }}+ reviews)</small>
+                        </div>
+                        <div class="text-brand small font-weight-bold">
+                            <i class="fas fa-motorcycle mr-1"></i> ₹{{ restaurant.deliveryFee || 0 }} Delivery
+                        </div>
                     </div>
 
-                    <button class="btn btn-sm btn-outline-brand" @click="viewMenu">
+                    <button class="btn btn-sm btn-outline-brand align-self-end mt-2" @click="viewMenu">
                         View Menu
                     </button>
                 </div>

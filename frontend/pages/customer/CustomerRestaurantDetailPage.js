@@ -23,6 +23,16 @@ const CustomerRestaurantDetailPage = {
                         <div v-else class="text-muted mb-3">No reviews yet</div>
                         <p class="lead text-dark font-weight-bold mb-2">{{ restaurant.cuisine }}</p>
                         <p class="text-muted mb-4">{{ restaurant.description }}</p>
+                        <div class="d-flex justify-content-center mb-4">
+                            <div class="mx-3 text-center">
+                                <p class="mb-0 text-brand font-weight-bold">₹{{ restaurant.deliveryFee || 0 }}</p>
+                                <small class="text-muted">Delivery Fee</small>
+                            </div>
+                            <div class="mx-3 text-center border-left pl-3">
+                                <p class="mb-0 text-brand font-weight-bold">₹{{ restaurant.platformFee || 0 }}</p>
+                                <small class="text-muted">Platform Fee</small>
+                            </div>
+                        </div>
                         <p class="mb-4"><strong>Address:</strong> {{ restaurant.address }}</p>
                         
                         <button v-if="isCustomer" class="btn btn-outline-brand" @click="toggleFavorite">
