@@ -59,7 +59,7 @@ const CustomerLoginPage = {
             password: '',
             error: null,
             // Replace this with your actual Google Client ID
-            googleClientId: '31264651730-5ghtrtubc069u2b82lj4g58jlfrtgdt0.apps.googleusercontent.com',
+            googleClientId: '687400550130-e5010qm1elba5jpvlu2a0ice199up4l7.apps.googleusercontent.com',
         };
     },
     mounted() {
@@ -153,3 +153,4 @@ const CustomerLoginPage = {
 };
 
 export default CustomerLoginPage;
+
