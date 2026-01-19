@@ -2522,7 +2522,12 @@ def debug_token():
 #@app.route('/<path:path>')
 #def serve_vue_app(path):
 
- #   return render_template('index.html')
+  # return render_template('index.html')
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_vue_app(path):
+    return render_template('index.html')
+
 
 
 
