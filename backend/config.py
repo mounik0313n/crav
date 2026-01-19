@@ -48,6 +48,7 @@ class ProductionConfig(Config):
     # Validation for these keys now happens in app.py
     DEBUG = False
     TESTING = False
+
       # Razorpay test keys for local development
     RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_Ro0ehBTT9I1ZS1')
     RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '2aAV1Ss6G12ObEncXLJjkBWp')

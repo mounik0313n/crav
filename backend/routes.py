@@ -1,9 +1,5 @@
 from flask import current_app as app, jsonify, request, render_template, send_file
-from .extensions import api,cache
-import razorpay
-import hmac
-import hashlib
-
+from .extensions import api, cache
 from flask_security import auth_required, roles_required, current_user,verify_password
 from werkzeug.security import check_password_hash
 import io
@@ -16,6 +12,9 @@ from PIL import Image
 import uuid
 import sys
 import os
+import razorpay
+import hmac
+import hashlib
 
 from .models import db, User, Role, Restaurant ,RolesUsers,Order,OrderItem,MenuItem,Review,Category,RewardPoint,Coupon,TimeSlot
 from .security import user_datastore
@@ -832,7 +831,7 @@ def place_order():
     otp = ''.join(random.choices(string.digits, k=6))
     qr_payload = ''.join(random.choices(string.ascii_letters + string.digits, k=20))
     
-        # Normalize order type and capture table number for dine-in
+    # Normalize order type and capture table number for dine-in
     raw_order_type = (data.get('order_type') or 'takeaway').lower()
     if raw_order_type in ['dinein', 'dine_in', 'dining']:
         order_type = 'dine_in'
@@ -849,7 +848,7 @@ def place_order():
         user_id=current_user.id,
         restaurant_id=restaurant.id,
         total_amount=round(final_total, 2),
-        order_type=order_type,
+        order_type= order_type,
         table_number=table_number,
         status='placed',
         otp=otp,
@@ -872,7 +871,7 @@ def place_order():
         cache.delete_memoized(get_featured_restaurants)
     except Exception:
         pass
-    
+
     return jsonify({'message': 'Order placed successfully!', 'order_id': new_order.id}), 201
 
 # -------------------- Razorpay Payment Endpoints --------------------
@@ -1016,7 +1015,6 @@ def razorpay_webhook():
 
 # -------------------- End Razorpay Endpoints --------------------
 
-
 # In backend/routes.py
 
 @app.route('/api/coupons/applicable/<int:restaurant_id>', methods=['GET'])
@@ -1127,7 +1125,7 @@ def manage_favorite(restaurant_id):
 # --- NEW: RESTAURANT LISTING & DETAIL ENDPOINTS ---
 
 @app.route('/api/restaurants/featured', methods=['GET'])
-@cache.memoize(timeout=300)
+@cache.cached(timeout=300)
 def get_featured_restaurants():
     try:
         restaurants = Restaurant.query.filter_by(is_verified=True, is_active=True).limit(6).all()
@@ -1163,10 +1161,8 @@ def get_featured_restaurants():
         # Return an empty list on error to prevent a 500 crash page
         return jsonify([]), 500
 
-
-
 @app.route('/api/restaurants/<int:restaurant_id>', methods=['GET'])
-@cache.memoize(timeout=300)
+@cache.cached(timeout=300)
 def get_restaurant_details(restaurant_id):
     restaurant = Restaurant.query.options(joinedload(Restaurant.categories).joinedload(Category.menu_items)).get_or_404(restaurant_id)
     
@@ -1371,9 +1367,8 @@ def update_order_status(order_id):
         cache.delete_memoized(get_featured_restaurants)
     except Exception:
         pass
-    
-    return jsonify({"message": f"Order #{order.id} has been updated to '{new_status}'."}), 200
 
+    return jsonify({"message": f"Order #{order.id} has been updated to '{new_status}'."}), 200
 
 @app.route('/api/restaurant/orders/<int:order_id>/pickup', methods=['PATCH'])
 @auth_required('token')
@@ -1397,7 +1392,6 @@ def set_pickup_ready(order_id):
     except Exception:
         pass
     return jsonify({"message": f"Order #{order.id} pickup_ready set to {order.pickup_ready}."}), 200
-
 
 # ✅ START: NEW OTP VERIFICATION ROUTE
 @app.route('/api/restaurant/orders/<int:order_id>/verify', methods=['POST'])
@@ -1539,7 +1533,7 @@ def manage_menu_item(item_id):
             cache.delete_memoized(get_featured_restaurants)
         except Exception:
             pass
-        
+
         return jsonify({"message": "Menu item deleted successfully."}), 200
 
 @app.route('/api/restaurant/menu-items/<int:item_id>/availability', methods=['PATCH'])
@@ -1581,6 +1575,7 @@ def manage_restaurant_profile():
             'openingHours': '9:00 AM - 10:00 PM', # Placeholder
             'gallery': restaurant.gallery or [] # Fetch gallery from DB
         }
+
         return jsonify(profile_data), 200
 
     if request.method == 'PUT':
@@ -1672,6 +1667,7 @@ def manage_specific_promotion(coupon_id):
             cache.delete_memoized(get_featured_restaurants)
         except Exception:
             pass
+
         return jsonify({"message": "Coupon updated successfully."}), 200
 
     if request.method == 'DELETE':
@@ -1682,6 +1678,7 @@ def manage_specific_promotion(coupon_id):
             cache.delete_memoized(get_featured_restaurants)
         except Exception:
             pass
+
         return jsonify({"message": "Coupon deleted successfully."}), 200
 
 # --- NEW: ANALYTICS ENDPOINT ---
@@ -1833,6 +1830,7 @@ def admin_create_restaurant():
     try:
         cache.delete_memoized(get_featured_restaurants)
         cache.delete_memoized(get_restaurant_details, new_restaurant.id)
+
     except Exception:
         pass
     return jsonify({"message": "Restaurant created successfully."}), 201
@@ -1867,15 +1865,13 @@ def admin_update_restaurant(id):
         pass # Fallback to existing or default
     
     db.session.commit()
-    
-    # Correct Cache Clearing for @cache.memoize
     try:
         cache.delete_memoized(get_featured_restaurants)
-        cache.delete_memoized(get_restaurant_details, id)
-    except Exception as e:
-        print(f"Error clearing cache: {e}")
-        
-    return jsonify({"message": "Restaurant updated successfully.", "id": restaurant.id}), 200
+        cache.delete_memoized(get_restaurant_details, restaurant.id)
+    except Exception:
+        pass
+    
+    return jsonify({"message": "Restaurant updated successfully."}), 200
 
 
 @app.route('/api/admin/restaurants/export')

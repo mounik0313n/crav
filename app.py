@@ -13,6 +13,7 @@ from backend.config import LocalDevelopmentConfig, ProductionConfig
 from backend.security import user_datastore
 
 
+
 def createApp():
     """
     Creates and configures the Flask application (factory).
@@ -42,6 +43,7 @@ def createApp():
     db.init_app(app)
     api.init_app(app)
     migrate.init_app(app, db)
+    cache.init_app(app)
     security.init_app(app, user_datastore)
     cache.init_app(app)
 
