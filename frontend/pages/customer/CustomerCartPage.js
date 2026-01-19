@@ -20,7 +20,10 @@ const CustomerCartPage = {
                                     <span>Subtotal</span><strong>₹{{ subtotal.toLocaleString('en-IN') }}</strong>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between">
-                                    <span>Delivery Fee (Fixed)</span><strong>₹{{ deliveryFee.toLocaleString('en-IN') }}</strong>
+                                    <span>Delivery Fee</span><strong>₹{{ deliveryFee.toLocaleString('en-IN') }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Platform Fee</span><strong>₹{{ platformFee.toLocaleString('en-IN') }}</strong>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between total-row">
                                     <h5>Total</h5><h5>₹{{ total.toLocaleString('en-IN') }}</h5>
@@ -39,15 +42,42 @@ const CustomerCartPage = {
             </div>
         </div>
     `,
-    data() { return { deliveryFee: 5.00 }; },
+    data() {
+        return {
+            deliveryFee: 0.00,
+            platformFee: 0.00,
+            fetchingFees: false
+        };
+    },
     computed: {
-        ...Vuex.mapGetters(['cartItems', 'cartTotal']),
+        ...Vuex.mapGetters(['cartItems', 'cartTotal', 'cartRestaurantId']),
         subtotal() { return this.cartTotal; },
-        total() { return this.subtotal + this.deliveryFee; }
+        total() { return this.subtotal + this.deliveryFee + this.platformFee; }
+    },
+    mounted() {
+        this.fetchRestaurantFees();
     },
     methods: {
         updateQuantity(payload) { this.$store.dispatch('updateCartQuantity', payload); },
-        removeItem(itemId) { this.$store.dispatch('removeItemFromCart', itemId); }
+        removeItem(itemId) { this.$store.dispatch('removeItemFromCart', itemId); },
+        async fetchRestaurantFees() {
+            const restaurantId = this.cartRestaurantId;
+            if (!restaurantId) return;
+
+            this.fetchingFees = true;
+            try {
+                const response = await fetch(`/api/restaurants/${restaurantId}`);
+                const data = await response.json();
+                if (response.ok) {
+                    this.deliveryFee = data.deliveryFee || 0;
+                    this.platformFee = data.platformFee || 0;
+                }
+            } catch (err) {
+                console.error("Error fetching restaurant fees:", err);
+            } finally {
+                this.fetchingFees = false;
+            }
+        }
     }
 };
 export default CustomerCartPage;

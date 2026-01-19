@@ -124,6 +124,8 @@ def create_users_and_data(ds, roles):
                 city="Flavor Town",
                 latitude=40.7128,
                 longitude=-74.0060,
+                delivery_fee=40.0,
+                platform_fee=15.0,
                 is_verified=True,
                 is_active=True
             )
@@ -159,9 +161,6 @@ def init_app(app):
     with app.app_context():
         try:
             print("--- Starting Initial Data Setup ---")
-            # Ensure all tables are created
-            db.create_all() 
-            print("Database tables created successfully.")
             
             roles = create_roles(user_datastore)
             create_users_and_data(user_datastore, roles)

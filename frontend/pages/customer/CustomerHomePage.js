@@ -10,13 +10,24 @@ const CustomerHomePage = {
             <section class="hero-section">
                 <div class="container">
                     <div class="row align-items-center">
-                        <div class="col-lg-6 text-center text-lg-left">
-                            <h1 class="hero-title">All Fast Food is Available at <span class="text-brand">Crav</span></h1>
-                            <p class="my-4">We Are Just A Click Away When You Crave For Delicious Fast Food</p>
-                            <button class="btn btn-brand btn-lg" @click="scrollToFeatured">Order Now</button>
+                        <div class="col-lg-6 text-center text-lg-left hero-content-box">
+                            <h1 class="hero-title">Experience The Best <span class="text-brand">Takeaway</span> In Your City</h1>
+                            <p class="my-4 lead">Crav brings your favorite local flavors right to your fingertips. Fast, fresh, and ready when you are.</p>
+                            <div class="hero-buttons">
+                                <button class="btn btn-brand btn-lg shadow-sm mr-3" @click="scrollToFeatured">Order Now</button>
+                                <button class="btn btn-outline-brand btn-lg shadow-sm" @click="scrollToNearby">Nearby Food</button>
+                            </div>
+                            
+                            <!-- Motion Graphics Icons -->
+                            <div class="motion-graphics d-none d-lg-block">
+                                <div class="floating-icon icon-1"><i class="fas fa-burger text-brand"></i></div>
+                                <div class="floating-icon icon-2"><i class="fas fa-pizza-slice text-brand"></i></div>
+                                <div class="floating-icon icon-3"><i class="fas fa-drumstick-bite text-brand"></i></div>
+                            </div>
                         </div>
-                        <div class="col-lg-6 mt-5 mt-lg-0">
-                            <img src="/assets/images/hero.jpg" class="img-fluid" alt="Delicious food on a plate">
+                        <div class="col-lg-6 mt-5 mt-lg-0 hero-image-container">
+                            <div class="hero-image-shadow"></div>
+                            <img src="/assets/images/hero.jpg" class="img-fluid floating-hero" alt="Delicious takeaway food">
                         </div>
                     </div>
                 </div>
@@ -220,6 +231,12 @@ const CustomerHomePage = {
         },
         scrollToFeatured() {
             // This method remains unchanged
+            const element = document.getElementById('nearby-restaurants');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        },
+        scrollToNearby() {
             const element = document.getElementById('nearby-restaurants');
             if (element) {
                 element.scrollIntoView({ behavior: 'smooth' });

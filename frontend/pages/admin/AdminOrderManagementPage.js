@@ -38,7 +38,7 @@ const AdminOrderManagementPage = {
                             <thead class="thead-light">
                                 <tr>
                                     <th>Order ID</th><th>Customer</th><th>Restaurant</th>
-                                    <th>Date</th><th>Total</th><th>Status</th><th>Actions</th>
+                                    <th>Date</th><th>Fees (D/P)</th><th>Total</th><th>Status</th><th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -50,6 +50,10 @@ const AdminOrderManagementPage = {
                                     <td>{{ order.customerName }}</td>
                                     <td>{{ order.restaurantName }}</td>
                                     <td>{{ order.date }}</td>
+                                    <td>
+                                        <small class="text-muted d-block">D: ₹{{ (order.deliveryFee || 0) }}</small>
+                                        <small class="text-muted d-block">P: ₹{{ (order.platformFee || 0) }}</small>
+                                    </td>
                                     <td>₹{{ order.total.toLocaleString('en-IN') }}</td>
                                     <td>
                                         <span class="status-badge" :class="order.status.toLowerCase()">
@@ -127,7 +131,7 @@ const AdminOrderManagementPage = {
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.message);
                     alert(data.message);
-                    this.fetchOrders(); 
+                    this.fetchOrders();
                 } catch (err) {
                     alert('Error: ' + err.message);
                 }
@@ -145,7 +149,7 @@ const AdminOrderManagementPage = {
                     const errorData = await response.json();
                     throw new Error(errorData.message || 'Failed to download file.');
                 }
-                
+
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');

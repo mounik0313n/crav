@@ -26,6 +26,18 @@ const CustomerOrderDetailPage = {
                                         <strong>{{ order.order_type === 'dine_in' ? 'Dine-In' : 'Takeaway' }}</strong>
                                     </li>
                                     <li class="d-flex justify-content-between py-2 border-bottom">
+                                        <span class="text-muted">Delivery Fee:</span>
+                                        <strong>₹{{ (order.deliveryFee || 0).toLocaleString('en-IN') }}</strong>
+                                    </li>
+                                    <li class="d-flex justify-content-between py-2 border-bottom">
+                                        <span class="text-muted">Platform Fee:</span>
+                                        <strong>₹{{ (order.platformFee || 0).toLocaleString('en-IN') }}</strong>
+                                    </li>
+                                    <li v-if="order.discountAmount > 0" class="d-flex justify-content-between py-2 border-bottom text-success">
+                                        <span class="text-muted">Discount:</span>
+                                        <strong>-₹{{ (order.discountAmount || 0).toLocaleString('en-IN') }}</strong>
+                                    </li>
+                                    <li class="d-flex justify-content-between py-2 border-bottom">
                                         <span class="text-muted">Total Amount:</span>
                                         <strong class="text-brand">₹{{ order.total.toLocaleString('en-IN') }}</strong>
                                     </li>

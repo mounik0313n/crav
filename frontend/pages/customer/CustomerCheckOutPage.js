@@ -113,6 +113,9 @@ const CustomerCheckoutPage = {
                                 <li class="list-group-item d-flex justify-content-between">
                                     <span>Delivery Fee</span><strong>₹{{ deliveryFee.toLocaleString('en-IN') }}</strong>
                                 </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Platform Fee</span><strong>₹{{ platformFee.toLocaleString('en-IN') }}</strong>
+                                </li>
                                 <li v-if="appliedCoupon" class="list-group-item d-flex justify-content-between text-success">
                                     <span>Discount</span><strong>-₹{{ discountAmount.toLocaleString('en-IN') }}</strong>
                                 </li>
@@ -129,12 +132,13 @@ const CustomerCheckoutPage = {
             </div>
         </div>
     `,
-data() {
+    data() {
         return {
             isPlacing: false,
             isPaying: false,
             error: null,
-            deliveryFee: 50.00,
+            deliveryFee: 0.00,
+            platformFee: 0.00,
             orderType: 'takeaway',
             scheduleChoice: 'now',
             slotsLoading: true,
@@ -151,16 +155,16 @@ data() {
             couponsLoading: true
         };
     },
-     computed: {
+    computed: {
         ...Vuex.mapGetters(['cartItems', 'cartTotal', 'cartRestaurantId']),
-        subtotal() { 
-            return this.cartTotal; 
+        subtotal() {
+            return this.cartTotal;
         },
-        total() { 
-            return Math.max(0, this.subtotal + this.deliveryFee - this.discountAmount); 
+        total() {
+            return Math.max(0, this.subtotal + this.deliveryFee + this.platformFee - this.discountAmount);
         },
-        isScheduling() { 
-            return this.orderType === 'dine_in' || this.scheduleChoice === 'later'; 
+        isScheduling() {
+            return this.orderType === 'dine_in' || this.scheduleChoice === 'later';
         },
         slotsForSelectedDay() {
             if (!this.selectedDate) return [];
@@ -177,13 +181,14 @@ data() {
                 this.selectedTime = null;
             }
         },
-        selectedDate() { 
-            this.selectedTime = null; 
+        selectedDate() {
+            this.selectedTime = null;
         }
     },
     mounted() {
-         this.fetchAvailableSlots();
-         this.fetchApplicableCoupons();
+        this.fetchRestaurantFees();
+        this.fetchAvailableSlots();
+        this.fetchApplicableCoupons();
     },
     methods: {
         selectOrderType(type) {
@@ -193,6 +198,19 @@ data() {
             this.appliedCoupon = null;
             this.discountAmount = 0;
             this.availableDays = [];
+        },
+        async fetchRestaurantFees() {
+            if (!this.cartRestaurantId) return;
+            try {
+                const response = await fetch(`/api/restaurants/${this.cartRestaurantId}`);
+                const data = await response.json();
+                if (response.ok) {
+                    this.deliveryFee = data.deliveryFee || 0;
+                    this.platformFee = data.platformFee || 0;
+                }
+            } catch (err) {
+                console.error("Error fetching restaurant fees:", err);
+            }
         },
         async fetchAvailableSlots() {
             if (!this.isScheduling || !this.selectedDate) return;
@@ -249,7 +267,7 @@ data() {
                 this.isApplyingCoupon = false;
             }
         },
-         loadRazorpayScript() {
+        loadRazorpayScript() {
             return new Promise((resolve, reject) => {
                 if (window.Razorpay) return resolve(true);
                 const script = document.createElement('script');
@@ -260,34 +278,34 @@ data() {
             });
         },
         async payWithRazorpay(orderId) {
-             try {
+            try {
                 // Request server to create Razorpay order first (may use mock in dev)
                 this.isPaying = true;
                 const res = await apiService.post('/api/payments/create', { order_id: orderId });
                 const { razorpay_order_id, razorpay_key, amount } = res;
-         // Try to load Razorpay script
-            try {
-                await this.loadRazorpayScript();
-                    
-                // Real Razorpay checkout
-                const options = {
-                key: razorpay_key,
-                amount: amount,
-                currency: 'INR',
-                name: 'Cravt',
-                description: `Order #${orderId}`,
-                order_id: razorpay_order_id,
-                handler: async (response) => {
-                this.isPaying = false;
-                // Verify payment with server
+                // Try to load Razorpay script
                 try {
-                const verify = await apiService.post('/api/payments/verify', {
+                    await this.loadRazorpayScript();
+
+                    // Real Razorpay checkout
+                    const options = {
+                        key: razorpay_key,
+                        amount: amount,
+                        currency: 'INR',
+                        name: 'Cravt',
+                        description: `Order #${orderId}`,
+                        order_id: razorpay_order_id,
+                        handler: async (response) => {
+                            this.isPaying = false;
+                            // Verify payment with server
+                            try {
+                                const verify = await apiService.post('/api/payments/verify', {
                                     order_id: orderId,
                                     razorpay_order_id: response.razorpay_order_id,
                                     razorpay_payment_id: response.razorpay_payment_id,
                                     razorpay_signature: response.razorpay_signature
                                 });
-                                    // Success: clear cart and navigate to order detail
+                                // Success: clear cart and navigate to order detail
                                 this.$store.dispatch('clearCart');
                                 alert('Payment successful!');
                                 this.$router.push({ name: 'OrderDetail', params: { id: orderId } });
@@ -303,22 +321,22 @@ data() {
                         },
                         theme: { color: '#E65100' }
                     };
-        const rzp = new window.Razorpay(options);
+                    const rzp = new window.Razorpay(options);
                     rzp.on('payment.failed', (resp) => {
                         this.isPaying = false;
                         console.error('Payment failed', resp);
                         alert('Payment failed: ' + (resp.error && resp.error.description || 'Unknown error'));
                     });
                     rzp.open();
-                    
+
                 } catch (razorpayLoadError) {
                     // Razorpay SDK not available (development mode)
                     console.log('Razorpay SDK not available, using development mode payment');
-                    
+
                     // In development, simulate payment with mock data
                     const mockPaymentId = 'pay_dev_' + Math.random().toString(36).substr(2, 9);
                     const mockSignature = 'mock_signature_' + Math.random().toString(36).substr(2, 9);
-                    
+
                     this.isPaying = false;
                     try {
                         const verify = await apiService.post('/api/payments/verify', {
@@ -350,7 +368,7 @@ data() {
         async placeOrder() {
             this.isPlacing = true;
             this.error = null;
-            
+
             if (this.isScheduling && !this.selectedTime) {
                 this.error = "Please select a time slot for your scheduled order.";
                 this.isPlacing = false;
@@ -362,7 +380,7 @@ data() {
                 order_type: this.orderType,
                 items: this.cartItems.map(item => ({ menu_item_id: item.id, quantity: item.quantity })),
                 coupon_code: this.appliedCoupon,
-                scheduled_time: this.selectedTime 
+                scheduled_time: this.selectedTime
             };
 
             try {
