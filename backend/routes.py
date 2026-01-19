@@ -334,7 +334,7 @@ def admin_dashboard_stats():
     """ Gathers and returns all key metrics for the admin dashboard. """
     try:
         # Calculate total revenue from completed orders
-        total_revenue = db.session.query(func.sum(Order.total_amount)).filter(Order.status == 'completed').scalar() or 0
+        total_revenue = db.session.query(func.sum(Order.total_amount)).filter(Order.status == 'paid').scalar() or 0
 
         # Get total counts
         total_orders = db.session.query(func.count(Order.id)).scalar() or 0
@@ -2523,6 +2523,7 @@ def debug_token():
 #def serve_vue_app(path):
 
  #   return render_template('index.html')
+
 
 
 
