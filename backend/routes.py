@@ -119,7 +119,7 @@ def register_customer():
     # 👇 HASH THE PASSWORD ON REGISTRATION 👇
     user_datastore.create_user(
         email=email,
-        password=(data.get('password')), # Use the imported hash_password
+        password=hash_password(data.get('password')), # Use the imported hash_password
         name=data.get('name'),
         roles=['customer']
     )
@@ -236,7 +236,7 @@ def register_restaurant():
     try:
         owner = user_datastore.create_user(
             email=data.get('ownerEmail'),
-            password=data.get('password'),
+            password=hash_password(data.get('password')),,
             name=data.get('ownerName')
         )
         owner_role = user_datastore.find_role('owner')
@@ -2523,6 +2523,7 @@ def debug_token():
 #def serve_vue_app(path):
 
  #   return render_template('index.html')
+
 
 
 
