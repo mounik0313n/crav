@@ -1058,7 +1058,7 @@ def razorpay_webhook():
             if order:
                 order.razorpay_payment_id = razorpay_payment_id
                 order.payment_status = 'paid'
-                order.status = 'completed'
+                order.status = 'placed'
                 db.session.commit()
 
     except Exception as e:
@@ -2523,6 +2523,7 @@ def debug_token():
 #def serve_vue_app(path):
 
  #   return render_template('index.html')
+
 
 
 
