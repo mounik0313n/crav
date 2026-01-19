@@ -590,7 +590,7 @@ def get_admin_reports():
     # 1. Fetch all completed orders from the last 7 days.
     # We filter using a full datetime object, which is very reliable.
     recent_orders = db.session.query(Order.created_at, Order.total_amount).filter(
-        Order.status == 'completed',
+        Order.payment_status == 'paid',
         Order.created_at >= seven_days_ago
     ).all()
 
@@ -2523,6 +2523,7 @@ def debug_token():
 #def serve_vue_app(path):
 
  #   return render_template('index.html')
+
 
 
 
