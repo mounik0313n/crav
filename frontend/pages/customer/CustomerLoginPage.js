@@ -58,34 +58,89 @@ const CustomerLoginPage = {
             email: '',
             password: '',
             error: null,
-            // Replace this with your actual Google Client ID
-            googleClientId: '687400550130-e5010qm1elba5jpvlu2a0ice199up4l7.apps.googleusercontent.com',
+            googleClientId: null,
+            isLoaded: false,
         };
     },
-    mounted() {
+    async mounted() {
+        await this.fetchConfig();
+        this.checkRedirectCallback();
         this.initGoogleSignIn();
     },
     methods: {
+        checkRedirectCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const googleToken = urlParams.get('google_token');
+            const error = urlParams.get('error');
+
+            if (googleToken) {
+                // We got a token back from the redirect flow!
+                const user = {
+                    email: urlParams.get('email'),
+                    name: urlParams.get('name'),
+                    // We don't have roles in the URL but the store will fetch them or we can just redirect to profile
+                    roles: ['customer'] // Default for Google login
+                };
+
+                this.$store.commit('SET_TOKEN', googleToken);
+                this.$store.commit('SET_USER', user);
+
+                // Clear the URL parameters
+                window.history.replaceState({}, document.title, window.location.pathname);
+
+                // Redirect to home
+                this.$router.push('/');
+            } else if (error) {
+                this.error = error;
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        },
+
+        async fetchConfig() {
+            try {
+                const res = await fetch('/api/config');
+                const data = await res.json();
+                if (data.googleClientId) {
+                    this.googleClientId = data.googleClientId;
+                } else {
+                    console.warn('Google Client ID not found in server config');
+                }
+            } catch (err) {
+                console.error('Failed to fetch config:', err);
+            }
+        },
+
         initGoogleSignIn() {
+            if (!this.googleClientId) {
+                // Try again in a bit if config isn't loaded yet
+                setTimeout(this.initGoogleSignIn, 500);
+                return;
+            }
+
             if (typeof google === 'undefined') {
                 setTimeout(this.initGoogleSignIn, 500);
                 return;
             }
 
-            google.accounts.id.initialize({
-                client_id: this.googleClientId,
-                callback: this.handleGoogleCallback,
-                cancel_on_tap_outside: false,
-                context: 'signin',
-            });
+            try {
+                google.accounts.id.initialize({
+                    client_id: this.googleClientId,
+                    ux_mode: 'redirect', // Better for PWA/Standalone mode
+                    login_uri: window.location.origin + '/api/google-login/redirect',
+                    cancel_on_tap_outside: false,
+                    context: 'signin',
+                });
 
-            google.accounts.id.renderButton(
-                document.getElementById('google-signin-btn'),
-                { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' }
-            );
+                google.accounts.id.renderButton(
+                    document.getElementById('google-signin-btn'),
+                    { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' }
+                );
 
-            // Trigger One Tap if you want
-            // google.accounts.id.prompt();
+                this.isLoaded = true;
+            } catch (err) {
+                console.error('Error initializing Google Sign-In:', err);
+                this.error = "Could not initialize Google Sign-In. Please check your internet connection.";
+            }
         },
 
         async handleGoogleCallback(response) {

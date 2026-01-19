@@ -1,4 +1,4 @@
-from flask import current_app as app, jsonify, request, render_template, send_file
+from flask import current_app as app, jsonify, request, render_template, send_file, redirect
 from .extensions import api, cache
 from flask_security import auth_required, roles_required, current_user,verify_password
 from werkzeug.security import check_password_hash
@@ -65,6 +65,17 @@ def temp_setup_database():
         return jsonify({"status": "error", "message": error_message}), 500
 # --- END NEW ROUTE ---
 
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    """
+    Returns public configuration values to the frontend.
+    This helps keep frontend and backend in sync.
+    """
+    return jsonify({
+        "googleClientId": app.config.get('GOOGLE_CLIENT_ID')
+    }), 200
+
+
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -127,9 +138,14 @@ def google_login():
         # Verify the token
         client_id = app.config.get('GOOGLE_CLIENT_ID')
         if not client_id:
+            print("GOOGLE LOGIN ERROR: GOOGLE_CLIENT_ID not found in app config")
             return jsonify({"message": "Google Client ID not configured on server"}), 500
 
-        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+        try:
+            idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+        except Exception as ve:
+            print(f"GOOGLE TOKEN VERIFICATION ERROR: {ve}")
+            return jsonify({"message": f"Token verification failed: {str(ve)}"}), 401
 
         # ID token is valid. Get the user's Google ID and email.
         email = idinfo['email']
@@ -162,12 +178,49 @@ def google_login():
             }
         }), 200
 
-    except ValueError:
-        # Invalid token
-        return jsonify({"message": "Invalid Google token"}), 401
     except Exception as e:
-        print(f"GOOGLE LOGIN ERROR: {e}")
-        return jsonify({"message": str(e)}), 500
+        print(f"GOOGLE LOGIN GENERAL ERROR: {e}")
+        return jsonify({"message": "An error occurred during Google Sign-In. Please try again."}), 500
+
+
+@app.route('/api/google-login/redirect', methods=['POST'])
+def google_login_redirect():
+    """
+    Handles the POST request from Google when ux_mode='redirect' is used.
+    """
+    token = request.form.get('credential')
+    if not token:
+        return redirect('/login?error=Google token is missing')
+
+    try:
+        client_id = app.config.get('GOOGLE_CLIENT_ID')
+        if not client_id:
+            return redirect('/login?error=Server configuration error')
+
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+        email = idinfo['email']
+        name = idinfo.get('name', '')
+
+        user = user_datastore.find_user(email=email)
+        if not user:
+            random_password = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+            user = user_datastore.create_user(
+                email=email,
+                password=random_password,
+                name=name,
+                active=True,
+                roles=['customer']
+            )
+            db.session.commit()
+
+        auth_token = user.get_auth_token()
+        
+        # Redirect back to the frontend login page with the token
+        return redirect(f'/login?google_token={auth_token}&email={email}&name={name}')
+
+    except Exception as e:
+        print(f"GOOGLE REDIRECT ERROR: {e}")
+        return redirect('/login?error=Google Sign-In failed')
 
 
 # --- ========================= ---

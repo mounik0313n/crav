@@ -95,7 +95,18 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('SW Registered!', reg))
+                    .then(reg => {
+                        console.log('SW Registered!', reg);
+                        // Check for updates to the service worker
+                        reg.onupdatefound = () => {
+                            const installingWorker = reg.installing;
+                            installingWorker.onstatechange = () => {
+                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('New content is available; please refresh.');
+                                }
+                            };
+                        };
+                    })
                     .catch(err => console.log('SW registration failed:', err));
             });
         }
@@ -106,33 +117,74 @@
         const installBtn = document.getElementById('pwa-install-btn');
         const closeBtn = document.getElementById('pwa-close-btn');
 
+        // Check if app is already "installed" or in standalone mode
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
         window.addEventListener('beforeinstallprompt', (e) => {
             // Prevent Chrome 67 and earlier from automatically showing the prompt
             e.preventDefault();
             // Stash the event so it can be triggered later.
             deferredPrompt = e;
-            // Update UI notify the user they can install the PWA
+
+            // Show the modal if not in standalone and not dismissed in this session
+            if (!isStandalone && !sessionStorage.getItem('pwa-prompt-dismissed')) {
+                showInstallModal();
+            }
+        });
+
+        function showInstallModal() {
+            // Smoothly show the modal
             installModal.style.display = 'block';
+            installModal.style.opacity = '0';
+            installModal.style.transition = 'opacity 0.5s ease-in-out';
+            setTimeout(() => {
+                installModal.style.opacity = '1';
+            }, 100);
+        }
+
+        // Auto-show logic for the prompt if it's "delayed" or if user wants it always
+        // We wait a few seconds after load to not overwhelm the user immediately
+        window.addEventListener('load', () => {
+            if (!isStandalone && !sessionStorage.getItem('pwa-prompt-dismissed')) {
+                setTimeout(() => {
+                    // Only show if we haven't shown it yet
+                    if (installModal.style.display !== 'block') {
+                        // For iOS or browsers that don't support beforeinstallprompt, 
+                        // we can still show our custom manual "how to install" or just the nudge.
+                        showInstallModal();
+                    }
+                }, 5000); // 5 second delay
+            }
         });
 
         installBtn.addEventListener('click', (e) => {
-            // hide our install UI
-            installModal.style.display = 'none';
-            // Show the prompt
-            deferredPrompt.prompt();
-            // Wait for the user to respond to the prompt
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                } else {
-                    console.log('User dismissed the install prompt');
-                }
-                deferredPrompt = null;
-            });
+            if (deferredPrompt) {
+                // hide our install UI
+                installModal.style.display = 'none';
+                // Show the prompt
+                deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    } else {
+                        console.log('User dismissed the install prompt');
+                        sessionStorage.setItem('pwa-prompt-dismissed', 'true');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                // Fallback for iOS or if prompt isn't available yet
+                alert('To install Crav: \n1. Open in Safari \n2. Tap the Share button \n3. Select "Add to Home Screen"');
+                installModal.style.display = 'none';
+                sessionStorage.setItem('pwa-prompt-dismissed', 'true');
+            }
         });
 
         closeBtn.addEventListener('click', () => {
             installModal.style.display = 'none';
+            // Don't show again in this session
+            sessionStorage.setItem('pwa-prompt-dismissed', 'true');
         });
 
         // Check if already installed
@@ -141,9 +193,7 @@
             installModal.style.display = 'none';
         });
 
-        // Manually show the modal if needed for testing or if it's already "installable" but missed the event
-        // (The user asked for it to appear on every visit)
-        if (window.matchMedia('(display-mode: standalone)').matches) {
+        if (isStandalone) {
             console.log('App is already running in standalone mode');
         }
     </script>
