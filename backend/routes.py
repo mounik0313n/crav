@@ -1,6 +1,6 @@
 from flask import current_app as app, jsonify, request, render_template, send_file, redirect
 from .extensions import api, cache
-from flask_security import auth_required, roles_required, current_user,verify_password
+from flask_security import auth_required, roles_required, current_user,verify_password,hash_password
 from werkzeug.security import check_password_hash
 import io
 import openpyxl
@@ -2523,6 +2523,7 @@ def debug_token():
 #def serve_vue_app(path):
 
  #   return render_template('index.html')
+
 
 
 
