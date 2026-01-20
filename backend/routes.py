@@ -1,6 +1,6 @@
 from flask import current_app as app, jsonify, request, render_template, send_file, redirect
 from .extensions import api, cache
-from flask_security import auth_required, roles_required, current_user,verify_password
+from flask_security import auth_required, roles_required, current_user,verify_password,hash_password
 from werkzeug.security import check_password_hash
 import io
 import openpyxl
@@ -120,7 +120,7 @@ def register_customer():
     # 👇 HASH THE PASSWORD ON REGISTRATION 👇
     user_datastore.create_user(
         email=email,
-        password=(data.get('password')), # Use the imported hash_password
+        password=hash_password(data.get('password')), # Use the imported hash_password
         name=data.get('name'),
         roles=['customer']
     )
@@ -241,7 +241,7 @@ def register_restaurant():
     try:
         owner = user_datastore.create_user(
             email=data.get('ownerEmail'),
-            password=data.get('password'),
+            password=hash_password(data.get('password')),,
             name=data.get('ownerName')
         )
         owner_role = user_datastore.find_role('owner')
@@ -596,7 +596,7 @@ def get_admin_reports():
     # 1. Fetch all completed orders from the last 7 days.
     # We filter using a full datetime object, which is very reliable.
     recent_orders = db.session.query(Order.created_at, Order.total_amount).filter(
-        Order.status == 'completed',
+        Order.payment_status == 'paid',
         Order.created_at >= seven_days_ago
     ).all()
 
@@ -1021,7 +1021,7 @@ def verify_razorpay_payment():
     # Mark payment success
     order.razorpay_payment_id = razorpay_payment_id
     order.payment_status = 'paid'
-    order.status = 'completed'
+    order.status = 'placed'
     db.session.commit()
 
     try:
@@ -1064,7 +1064,7 @@ def razorpay_webhook():
             if order:
                 order.razorpay_payment_id = razorpay_payment_id
                 order.payment_status = 'paid'
-                order.status = 'completed'
+                order.status = 'placed'
                 db.session.commit()
 
     except Exception as e:
@@ -2527,7 +2527,18 @@ def debug_token():
 #@app.route('/<path:path>')
 #def serve_vue_app(path):
 
- #   return render_template('index.html')
+  # return render_template('index.html')
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_vue_app(path):
+    return render_template('index.html')
+
+
+
+
+
+
+
 
 
 
