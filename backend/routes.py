@@ -241,7 +241,7 @@ def register_restaurant():
     try:
         owner = user_datastore.create_user(
             email=data.get('ownerEmail'),
-            password=hash_password(data.get('password')),,
+            password=hash_password(data.get('password')),
             name=data.get('ownerName')
         )
         owner_role = user_datastore.find_role('owner')
