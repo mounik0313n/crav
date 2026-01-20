@@ -15,35 +15,43 @@ const AdminDashboardPage = {
 
             <div v-if="!loading && !error">
                 <div class="row">
-                    <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="col-lg col-md-4 mb-4">
                         <div class="card stat-card h-100">
                             <div class="card-body">
-                                <h6 class="text-muted">TOTAL REVENUE</h6>
-                                <h3 class="stat-number">₹{{ stats.totalRevenue.toLocaleString('en-IN') }}</h3>
+                                <small class="text-muted font-weight-bold d-block mb-1">TOTAL REVENUE (GMV)</small>
+                                <h4 class="stat-number mb-0 text-dark">₹{{ stats.totalRevenue.toLocaleString('en-IN') }}</h4>
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6 mb-4">
-                        <div class="card stat-card h-100">
+                    <div class="col-lg col-md-4 mb-4">
+                        <div class="card stat-card h-100 bg-light-success border-success">
                             <div class="card-body">
-                                <h6 class="text-muted">TOTAL ORDERS</h6>
-                                <h3 class="stat-number">{{ stats.totalOrders.toLocaleString() }}</h3>
+                                <small class="text-brand font-weight-bold d-block mb-1">PLATFORM EARNINGS</small>
+                                <h4 class="stat-number mb-0 text-success">₹{{ stats.platformEarnings.toLocaleString('en-IN') }}</h4>
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="col-lg col-md-4 mb-4">
                         <div class="card stat-card h-100">
                             <div class="card-body">
-                                <h6 class="text-muted">TOTAL CUSTOMERS</h6>
-                                <h3 class="stat-number">{{ stats.totalCustomers.toLocaleString() }}</h3>
+                                <small class="text-muted font-weight-bold d-block mb-1">TOTAL ORDERS</small>
+                                <h4 class="stat-number mb-0">{{ stats.totalOrders.toLocaleString() }}</h4>
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="col-lg col-md-6 mb-4">
                         <div class="card stat-card h-100">
                             <div class="card-body">
-                                <h6 class="text-muted">TOTAL RESTAURANTS</h6>
-                                <h3 class="stat-number">{{ stats.totalRestaurants.toLocaleString() }}</h3>
+                                <small class="text-muted font-weight-bold d-block mb-1">TOTAL CUSTOMERS</small>
+                                <h4 class="stat-number mb-0">{{ stats.totalCustomers.toLocaleString() }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg col-md-6 mb-4">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <small class="text-muted font-weight-bold d-block mb-1">TOTAL RESTAURANTS</small>
+                                <h4 class="stat-number mb-0">{{ stats.totalRestaurants.toLocaleString() }}</h4>
                             </div>
                         </div>
                     </div>
@@ -88,6 +96,7 @@ const AdminDashboardPage = {
             error: null,
             stats: {
                 totalRevenue: 0,
+                platformEarnings: 0,
                 totalOrders: 0,
                 totalCustomers: 0,
                 totalRestaurants: 0

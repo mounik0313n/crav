@@ -40,7 +40,9 @@ restaurant_detail_fields = {
     'address': fields.String,
     'city': fields.String,
     'owner': fields.Nested(user_fields),
-    'categories': fields.List(fields.Nested(category_fields))
+    'categories': fields.List(fields.Nested(category_fields)),
+    'delivery_fee': fields.Float,
+    'platform_fee': fields.Float
 }
 
 order_item_fields = {
@@ -124,7 +126,7 @@ class OrderAPI(Resource):
         if not order_items_to_create:
             return {'message': 'Order must contain at least one item'}, 400
 
-        # --- ✅ START: MODIFIED LOGIC FOR COUPONS AND SCHEDULING ---
+        # --- ✅ START: MODIFIED LOGIC FOR COUPONS, FEES AND SCHEDULING ---
         final_amount = total_amount
         discount_amount = 0
         coupon_id = None
@@ -141,17 +143,24 @@ class OrderAPI(Resource):
             else:
                 return {'message': 'Invalid or expired coupon code.'}, 400
 
+        # Add Fees
+        delivery_fee = restaurant.delivery_fee or 0.0
+        platform_fee = restaurant.platform_fee or 0.0
+        final_total = final_amount + delivery_fee + platform_fee
+
         # Create the base order object
         new_order_data = {
             'user_id': current_user.id,
             'restaurant_id': restaurant.id,
-            'total_amount': round(final_amount, 2),
+            'total_amount': round(final_total, 2),
             'order_type': args['order_type'],
             'otp': ''.join(random.choices(string.digits, k=6)),
             'qr_payload': ''.join(random.choices(string.ascii_letters + string.digits, k=20)),
             'items': order_items_to_create,
             'coupon_id': coupon_id,
-            'discount_amount': round(discount_amount, 2)
+            'discount_amount': round(discount_amount, 2),
+            'delivery_fee': delivery_fee,
+            'platform_fee': platform_fee
         }
 
         # Add scheduling info only if the order is scheduled

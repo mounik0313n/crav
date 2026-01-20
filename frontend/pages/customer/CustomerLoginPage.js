@@ -76,10 +76,10 @@ const CustomerLoginPage = {
             if (googleToken) {
                 // We got a token back from the redirect flow!
                 const user = {
+                    id: urlParams.get('user_id'),
                     email: urlParams.get('email'),
-                    name: urlParams.get('name'),
-                    // We don't have roles in the URL but the store will fetch them or we can just redirect to profile
-                    roles: ['customer'] // Default for Google login
+                    name: decodeURIComponent(urlParams.get('name') || ''),
+                    roles: (urlParams.get('roles') || 'customer').split(',')
                 };
 
                 this.$store.commit('SET_TOKEN', googleToken);
@@ -91,7 +91,7 @@ const CustomerLoginPage = {
                 // Redirect to home
                 this.$router.push('/');
             } else if (error) {
-                this.error = error;
+                this.error = decodeURIComponent(error);
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         },

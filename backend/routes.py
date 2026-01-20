@@ -15,11 +15,12 @@ import os
 import razorpay
 import hmac
 import hashlib
+import urllib.parse
 
 from .models import db, User, Role, Restaurant ,RolesUsers,Order,OrderItem,MenuItem,Review,Category,RewardPoint,Coupon,TimeSlot
 from .security import user_datastore
 from .resources import RestaurantListAPI, RestaurantAPI, OrderAPI
-from sqlalchemy import func,Date, or_
+from sqlalchemy import func,Date, or_, case
 from datetime import datetime, date,timedelta
 
 from sqlalchemy.orm import joinedload
@@ -215,8 +216,12 @@ def google_login_redirect():
 
         auth_token = user.get_auth_token()
         
-        # Redirect back to the frontend login page with the token
-        return redirect(f'/login?google_token={auth_token}&email={email}&name={name}')
+        # URL-encode parameters for safety
+        safe_name = urllib.parse.quote(name)
+        role_list = ",".join([r.name for r in user.roles])
+        
+        # Redirect back to the frontend login page with full user info
+        return redirect(f'/login?google_token={auth_token}&email={email}&name={safe_name}&user_id={user.id}&roles={role_list}')
 
     except Exception as e:
         print(f"GOOGLE REDIRECT ERROR: {e}")
@@ -333,32 +338,33 @@ def get_all_restaurants():
 def admin_dashboard_stats():
     """ Gathers and returns all key metrics for the admin dashboard. """
     try:
-        # Calculate total revenue from completed orders
+        # Calculate total revenue from completed orders (Total GMV)
         total_revenue = db.session.query(func.sum(Order.total_amount)).filter(Order.status == 'completed').scalar() or 0
+        
+        # Calculate platform earnings (Administrative cut)
+        platform_earnings = db.session.query(func.sum(Order.platform_fee)).filter(Order.status == 'completed').scalar() or 0
 
         # Get total counts
         total_orders = db.session.query(func.count(Order.id)).scalar() or 0
 
         # --- MODIFIED QUERY FOR CUSTOMERS ---
-        # This explicit join is more robust than the previous implicit one.
         total_customers = db.session.query(func.count(User.id)).join(RolesUsers, RolesUsers.user_id == User.id).join(Role, RolesUsers.role_id == Role.id).filter(Role.name == 'customer').scalar() or 0
         
         total_restaurants = db.session.query(func.count(Restaurant.id)).scalar() or 0
 
-        # Eagerly load the 'owner' relationship to prevent extra queries and handle potential errors.
+        # Eagerly load the 'owner' relationship
         pending_restaurants = Restaurant.query.options(joinedload(Restaurant.owner)).filter_by(is_verified=False).all()
         
-        # Format the pending restaurants data, now with a safety check.
         pending_restaurants_data = [{
             'id': resto.id,
             'name': resto.name,
-            # This check prevents a server crash if a restaurant has no owner.
             'ownerEmail': resto.owner.email if resto.owner else 'Owner Not Found',
             'city': resto.city
         } for resto in pending_restaurants]
 
         stats = {
             'totalRevenue': round(total_revenue, 2),
+            'platformEarnings': round(platform_earnings, 2),
             'totalOrders': total_orders,
             'totalCustomers': total_customers,
             'totalRestaurants': total_restaurants
@@ -646,7 +652,7 @@ def get_all_users():
         orders_subquery = db.session.query(
             Order.user_id,
             func.count(Order.id).label('total_orders'),
-            func.sum(Order.total_amount).label('total_spent')
+            func.sum(case((Order.status == 'completed', Order.total_amount), else_=0)).label('total_spent')
         ).group_by(Order.user_id).subquery()
 
         # Query all users with the 'customer' role
@@ -1995,11 +2001,11 @@ def export_restaurants():
 @roles_required('admin')
 def export_users():
     try:
-        # Re-using the subquery from get_all_users
+        # Re-using the subquery from get_all_users with the fix
         orders_subquery = db.session.query(
             Order.user_id,
             func.count(Order.id).label('total_orders'),
-            func.sum(Order.total_amount).label('total_spent')
+            func.sum(case((Order.status == 'completed', Order.total_amount), else_=0)).label('total_spent')
         ).group_by(Order.user_id).subquery()
 
         customer_role = Role.query.filter_by(name='customer').first()
@@ -2360,7 +2366,6 @@ def delete_time_slot(slot_id):
     return jsonify({"message": "Time slot deleted successfully."}), 200
 
 @app.route('/api/restaurants/<int:restaurant_id>/available-slots', methods=['GET'])
-@auth_required('token')
 def get_available_slots(restaurant_id):
     """
     Calculates and returns a list of available time slots for the next 7 days
