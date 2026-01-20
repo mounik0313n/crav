@@ -2519,19 +2519,7 @@ def debug_token():
 #api.add_resource(RestaurantListAPI, '/api/restaurants')
 #api.add_resource(OrderAPI, '/api/orders')
 
-
 # TODO: Add customer routes for reviews, favorites, rewards, etc.
-
-# --- Frontend Serving Route ---
-#@app.route('/', defaults={'path': ''})
-#@app.route('/<path:path>')
-#def serve_vue_app(path):
-
-  # return render_template('index.html')
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve_vue_app(path):
-    return render_template('index.html')
 
 
 
