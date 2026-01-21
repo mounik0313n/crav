@@ -14,9 +14,7 @@ const RestaurantCard = {
                             </span>
                             <small class="text-muted ml-2">({{ restaurant.reviews }}+ reviews)</small>
                         </div>
-                        <div class="text-brand small font-weight-bold">
-                            <i class="fas fa-motorcycle mr-1"></i> ₹{{ restaurant.deliveryFee || 0 }} Delivery
-                        </div>
+                        
                     </div>
 
                     <button class="btn btn-sm btn-outline-brand align-self-end mt-2" @click="viewMenu">

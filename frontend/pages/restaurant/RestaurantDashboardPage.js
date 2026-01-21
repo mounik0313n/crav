@@ -106,17 +106,25 @@ const RestaurantDashboardPage = {
                 const token = this.$store.state.token;
                 if (!token) throw new Error("Authentication error. Please log in again.");
 
+                console.log("[DEBUG-FE] Fetching dashboard data...");
                 const response = await fetch('/api/restaurant/dashboard', {
                     headers: { 'Authentication-Token': token }
                 });
                 const data = await response.json();
+                
+                console.log("[DEBUG-FE] Response OK:", response.ok);
+                console.log("[DEBUG-FE] Response Data:", data);
+                
                 if (!response.ok) throw new Error(data.message || "Failed to fetch dashboard data.");
 
                 this.stats = data.stats;
                 this.recentOrders = data.recentOrders;
                 this.popularItems = data.popularItems;
+                
+                console.log("[DEBUG-FE] Stats Updated:", this.stats);
 
             } catch (err) {
+                console.error("[DEBUG-FE] Error:", err);
                 this.error = err.message;
             } finally {
                 this.loading = false;
