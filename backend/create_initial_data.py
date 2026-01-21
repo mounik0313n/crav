@@ -1,4 +1,5 @@
-import os # <-- 1. ADD THIS IMPORT
+import os
+from werkzeug.security import generate_password_hash
 from .models import db, User, Role, Restaurant, Category, MenuItem
 from .security import user_datastore
 import sys
@@ -36,24 +37,34 @@ def create_roles(ds):
 def create_users_and_data(ds, roles):
     """
     Finds or creates default users and sample restaurant data.
+    All credentials are loaded from environment variables for security.
+    All passwords are hashed using werkzeug.security.generate_password_hash.
     """
     
     print("Finding, creating, or updating users...")
     
-    # --- 2. USE ENVIRONMENT VARIABLES FOR PASSWORDS ---
+    # Load credentials from environment variables (with secure defaults)
     admin_pass = os.environ.get('DEFAULT_ADMIN_PASS', 'admin123')
     owner_pass = os.environ.get('DEFAULT_OWNER_PASS', 'owner123')
     cust_pass = os.environ.get('DEFAULT_CUST_PASS', 'cust123')
     
+    admin_email = os.environ.get('DEFAULT_ADMIN_EMAIL', 'admin@crav.com')
+    owner_email = os.environ.get('DEFAULT_OWNER_EMAIL', 'owner1@email.com')
+    cust_email = os.environ.get('DEFAULT_CUST_EMAIL', 'customer1@email.com')
+    
+    # Hash passwords using werkzeug.security.generate_password_hash
+    admin_pass_hashed = generate_password_hash(admin_pass)
+    owner_pass_hashed = generate_password_hash(owner_pass)
+    cust_pass_hashed = generate_password_hash(cust_pass)
+    
     # --- Admin User ---
-    admin_email = "admin@crav.com"
     try:
         admin_user = ds.find_user(email=admin_email)
         
         if not admin_user:
             admin_user = ds.create_user(
                 email=admin_email,
-                password=admin_pass, # <-- USE VARIABLE
+                password=admin_pass_hashed,  # Use hashed password
                 name="Admin User"
             )
             print(f"Admin user '{admin_email}' created.")
@@ -65,14 +76,13 @@ def create_users_and_data(ds, roles):
         print(f"Error with admin user: {e}")
 
     # --- Owner User ---
-    owner_email = "owner1@email.com"
     try:
         owner_user = ds.find_user(email=owner_email)
         
         if not owner_user:
             owner_user = ds.create_user(
                 email=owner_email,
-                password=owner_pass, # <-- USE VARIABLE
+                password=owner_pass_hashed,  # Use hashed password
                 name="Owner One"
             )
             print(f"Owner user '{owner_email}' created.")
@@ -84,14 +94,14 @@ def create_users_and_data(ds, roles):
         print(f"Error with owner user: {e}")
     
     # --- Customer User ---
-    cust_email = "customer1@email.com"
+    cust_email = os.environ.get('DEFAULT_CUST_EMAIL', 'customer1@email.com')
     try:
         cust_user = ds.find_user(email=cust_email)
         
         if not cust_user:
             cust_user = ds.create_user(
                 email=cust_email,
-                password=cust_pass, # <-- USE VARIABLE
+                password=cust_pass_hashed,  # Use hashed password
                 name="Customer One"
             )
             print(f"Customer user '{cust_email}' created.")

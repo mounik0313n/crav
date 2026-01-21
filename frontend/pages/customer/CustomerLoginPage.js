@@ -58,7 +58,7 @@ const CustomerLoginPage = {
             email: '',
             password: '',
             error: null,
-            googleClientId: null,
+            googleClientId: '687400550130-e5010qm1elba5jpvlu2a0ice199up4l7.apps.googleusercontent.com',
             isLoaded: false,
         };
     },

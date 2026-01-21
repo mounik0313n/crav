@@ -58,7 +58,7 @@ def temp_setup_database():
         print("--- [TEMP SETUP] DATABASE INITIALIZATION COMPLETE ---")
         return jsonify({
             "status": "success",
-            "message": "Database setup complete! Check Render logs for details. You can now log in with admin@crav.com / admin123"
+            "message": "Database setup complete! Check Render logs for details. Admin account has been created. Use credentials from environment variables to log in."
         }), 200
     except Exception as e:
         error_message = f"Error during temp setup: {str(e)}"
@@ -1293,63 +1293,159 @@ def get_rewards_data():
 @roles_required('owner')
 def restaurant_dashboard_stats():
     """ Gathers and returns all key metrics for the restaurant owner's dashboard. """
-    # --- THIS IS THE FIX ---
-    # Use .first() instead of .first_or_404() to handle the case where no restaurant exists
-    restaurant = Restaurant.query.filter_by(owner_id=current_user.id).first()
-    
-    # If no restaurant is associated with the owner, return a specific error message
-    if not restaurant:
-        return jsonify({"message": "No restaurant profile found for this account. Please contact support if you believe this is an error."}), 404
-    
-    today = date.today()
-
-    # --- Calculate Stats ---
-    # Today's Revenue
-    todays_revenue = db.session.query(func.sum(Order.total_amount))\
-        .filter(Order.restaurant_id == restaurant.id, func.cast(Order.created_at, Date) == today).scalar() or 0.0
-
-    # Today's Orders
-    todays_orders = db.session.query(func.count(Order.id))\
-        .filter(Order.restaurant_id == restaurant.id, func.cast(Order.created_at, Date) == today).scalar() or 0
+    try:
+        # --- THIS IS THE FIX ---
+        # Use .first() instead of .first_or_404() to handle the case where no restaurant exists
+        restaurant = Restaurant.query.filter_by(owner_id=current_user.id).first()
         
-    # Pending Orders (Placed or Preparing)
-    pending_orders = db.session.query(func.count(Order.id))\
-        .filter(Order.restaurant_id == restaurant.id, Order.status.in_(['placed', 'preparing'])).scalar() or 0
+        # If no restaurant is associated with the owner, return a specific error message
+        if not restaurant:
+            return jsonify({"message": "No restaurant profile found for this account. Please contact support if you believe this is an error."}), 404
+        
+        today = date.today()
+        today_start = datetime.combine(today, datetime.min.time())
+        today_end = datetime.combine(today + timedelta(days=1), datetime.min.time())
+        
+        print(f"[DEBUG] Restaurant ID: {restaurant.id}, Today: {today}, Range: {today_start} to {today_end}")
 
-    # Recent Orders
-    recent_orders_query = Order.query.filter_by(restaurant_id=restaurant.id)\
-        .order_by(Order.created_at.desc()).limit(5).all()
-    
-    recent_orders_data = [{
-        'id': order.id,
-        'customerName': order.customer.name,
-        'items': len(order.items),
-        'total': order.total_amount,
-        'status': order.status.capitalize()
-    } for order in recent_orders_query]
+        # --- Calculate Stats ---
+        # Today's Revenue (using payment_status instead of order status, since payment confirms revenue)
+        todays_revenue = db.session.query(func.sum(Order.total_amount))\
+            .filter(
+                Order.restaurant_id == restaurant.id, 
+                Order.created_at >= today_start,
+                Order.created_at < today_end,
+                Order.payment_status == 'paid'
+            ).scalar() or 0.0
 
-    # Most Popular Items
-    popular_items_query = db.session.query(
-            MenuItem.name,
-            func.count(OrderItem.id).label('order_count')
-        ).join(OrderItem, MenuItem.id == OrderItem.menu_item_id)\
-        .filter(MenuItem.restaurant_id == restaurant.id)\
-        .group_by(MenuItem.name)\
-        .order_by(func.count(OrderItem.id).desc()).limit(5).all()
+        # Today's Orders (count orders that were paid today)
+        todays_orders = db.session.query(func.count(Order.id))\
+            .filter(
+                Order.restaurant_id == restaurant.id,
+                Order.created_at >= today_start,
+                Order.created_at < today_end,
+                Order.payment_status == 'paid'
+            ).scalar() or 0
+        
+        print(f"[DEBUG] Today's Revenue: {todays_revenue}, Today's Orders: {todays_orders}")
+            
+        # Pending Orders (Placed or Preparing)
+        pending_orders = db.session.query(func.count(Order.id))\
+            .filter(Order.restaurant_id == restaurant.id, Order.status.in_(['placed', 'preparing'])).scalar() or 0
 
-    popular_items_data = [{'name': name, 'orders': count} for name, count in popular_items_query]
+        # Recent Orders
+        recent_orders_query = Order.query.filter_by(restaurant_id=restaurant.id)\
+            .order_by(Order.created_at.desc()).limit(5).all()
+        
+        recent_orders_data = [{
+            'id': order.id,
+            'customerName': order.customer.name,
+            'items': len(order.items),
+            'total': order.total_amount,
+            'status': order.status.capitalize()
+        } for order in recent_orders_query]
 
-    stats = {
-        'todaysRevenue': round(todays_revenue, 2),
-        'todaysOrders': todays_orders,
-        'pendingOrders': pending_orders,
-    }
+        # Most Popular Items
+        popular_items_query = db.session.query(
+                MenuItem.name,
+                func.count(OrderItem.id).label('order_count')
+            ).join(OrderItem, MenuItem.id == OrderItem.menu_item_id)\
+            .filter(MenuItem.restaurant_id == restaurant.id)\
+            .group_by(MenuItem.name)\
+            .order_by(func.count(OrderItem.id).desc()).limit(5).all()
 
-    return jsonify({
-        'stats': stats,
-        'recentOrders': recent_orders_data,
-        'popularItems': popular_items_data
-    }), 200
+        popular_items_data = [{'name': name, 'orders': count} for name, count in popular_items_query]
+
+        stats = {
+            'todaysRevenue': round(todays_revenue, 2),
+            'todaysOrders': todays_orders,
+            'pendingOrders': pending_orders,
+        }
+
+        return jsonify({
+            'stats': stats,
+            'recentOrders': recent_orders_data,
+            'popularItems': popular_items_data
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] in restaurant_dashboard_stats: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching dashboard data: {str(e)}"}), 500
+
+# DEBUG ENDPOINT TO CHECK RAW ORDER DATA
+@app.route('/api/restaurant/debug/orders', methods=['GET'])
+@auth_required('token')
+@roles_required('owner')
+def debug_restaurant_orders():
+    """DEBUG: Show all orders for this restaurant with their timestamps and payment status"""
+    try:
+        restaurant = Restaurant.query.filter_by(owner_id=current_user.id).first()
+        if not restaurant:
+            return jsonify({"message": "No restaurant"}), 404
+            
+        all_orders = Order.query.filter_by(restaurant_id=restaurant.id).order_by(Order.created_at.desc()).limit(20).all()
+        
+        orders_data = []
+        for order in all_orders:
+            orders_data.append({
+                'id': order.id,
+                'created_at': str(order.created_at),
+                'created_date': order.created_at.date() if order.created_at else None,
+                'total_amount': order.total_amount,
+                'payment_status': order.payment_status,
+                'order_status': order.status
+            })
+        
+        today = date.today()
+        today_start = datetime.combine(today, datetime.min.time())
+        today_end = datetime.combine(today + timedelta(days=1), datetime.min.time())
+        
+        today_orders = Order.query.filter(
+            Order.restaurant_id == restaurant.id,
+            Order.created_at >= today_start,
+            Order.created_at < today_end
+        ).all()
+        
+        paid_today = Order.query.filter(
+            Order.restaurant_id == restaurant.id,
+            Order.created_at >= today_start,
+            Order.created_at < today_end,
+            Order.payment_status == 'paid'
+        ).all()
+        
+        return jsonify({
+            'debug': {
+                'today': str(today),
+                'today_start': str(today_start),
+                'today_end': str(today_end),
+                'total_orders_in_restaurant': len(all_orders),
+                'orders_today': len(today_orders),
+                'paid_orders_today': len(paid_today)
+            },
+            'recent_orders': orders_data,
+            'today_orders_detail': [{
+                'id': o.id,
+                'created_at': str(o.created_at),
+                'payment_status': o.payment_status,
+                'amount': o.total_amount
+            } for o in paid_today]
+        }), 200
+    except Exception as e:
+        print(f"[ERROR] in debug endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+        
+    except Exception as e:
+        print(f"[ERROR] in restaurant_dashboard_stats: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching dashboard data: {str(e)}"}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching dashboard data: {str(e)}"}), 500
 
 # --- NEW: ORDER QUEUE ENDPOINTS ---
 
@@ -1750,11 +1846,12 @@ def get_restaurant_analytics():
     restaurant = Restaurant.query.filter_by(owner_id=current_user.id).first_or_404()
     
     # --- Aggregate Stats ---
+    # Use payment_status == 'paid' for revenue (consistent with dashboard and admin reports)
     total_revenue = db.session.query(func.sum(Order.total_amount))\
-        .filter(Order.restaurant_id == restaurant.id, Order.status == 'completed').scalar() or 0.0
+        .filter(Order.restaurant_id == restaurant.id, Order.payment_status == 'paid').scalar() or 0.0
         
     total_orders = db.session.query(func.count(Order.id))\
-        .filter(Order.restaurant_id == restaurant.id, Order.status == 'completed').scalar() or 0
+        .filter(Order.restaurant_id == restaurant.id, Order.payment_status == 'paid').scalar() or 0
         
     avg_order_value = total_revenue / total_orders if total_orders > 0 else 0.0
 
@@ -1771,7 +1868,7 @@ def get_restaurant_analytics():
             func.sum(Order.total_amount).label('daily_revenue')
         ).filter(
             Order.restaurant_id == restaurant.id,
-            Order.status == 'completed',
+            Order.payment_status == 'paid',
             func.cast(Order.created_at, Date) >= seven_days_ago
         ).group_by('order_date').all()
     
