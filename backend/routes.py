@@ -58,7 +58,7 @@ def temp_setup_database():
         print("--- [TEMP SETUP] DATABASE INITIALIZATION COMPLETE ---")
         return jsonify({
             "status": "success",
-            "message": "Database setup complete! Check Render logs for details. You can now log in with admin@crav.com / admin123"
+            "message": "Database setup complete! Check Render logs for details. Admin account has been created. Use credentials from environment variables to log in."
         }), 200
     except Exception as e:
         error_message = f"Error during temp setup: {str(e)}"
